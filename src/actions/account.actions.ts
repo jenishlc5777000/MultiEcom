@@ -7,6 +7,7 @@ import { RETURN_REASONS } from "@/lib/constants";
 import { objectId, reviewSchema } from "@/lib/validations";
 import { createReturnRequest, ReturnError } from "@/services/return.service";
 import { createReview, ReviewError } from "@/services/review.service";
+import { cancelOrderByCustomer, OrderActionError } from "@/services/admin/order-admin.service";
 import type { ActionResult } from "@/types/dto";
 
 /** Customer: review a delivered piece. Goes to the owner's approval queue. */
@@ -47,6 +48,25 @@ export async function requestReturnAction(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: "Couldn't send your request. Please try again." };
   }
   revalidatePath(`/profile/orders/${parsed.data.orderId}`);
+  revalidatePath("/admin/approvals");
+  return { ok: true, data: undefined };
+}
+
+/** Customer: cancel their own paid order (only when Orders → Order steps allows it). */
+export async function cancelMyOrderAction(raw: unknown): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user?.id) return { ok: false, error: "Please sign in." };
+  const parsed = z.object({ orderId: objectId, reason: z.string().trim().min(3, "Tell us why (at least 3 characters)").max(300) }).safeParse(raw);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check the form." };
+  try {
+    await cancelOrderByCustomer(parsed.data.orderId, user.id, parsed.data.reason);
+  } catch (e) {
+    if (e instanceof OrderActionError) return { ok: false, error: e.message };
+    console.error("[cancel order]", e);
+    return { ok: false, error: "Couldn't cancel the order. Please contact us." };
+  }
+  revalidatePath(`/profile/orders/${parsed.data.orderId}`);
+  revalidatePath("/admin/orders");
   revalidatePath("/admin/approvals");
   return { ok: true, data: undefined };
 }

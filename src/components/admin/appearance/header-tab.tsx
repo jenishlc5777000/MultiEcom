@@ -23,6 +23,16 @@ const HEADER_PREVIEW: Record<string, React.ReactNode> = {
   boxed: <span className="flex h-6 items-center justify-between border-y-2 border-ink px-1.5"><span className={`${line} w-6`} /><span className="flex divide-x divide-ink/30"><span className={`${line} mx-1 w-2`} /><span className={`${line} mx-1 w-2`} /></span><span className="block h-2.5 w-4 border border-ink" /></span>,
 };
 
+/** One-click combinations for the category browsing flow (Studio → Header). */
+const MENU_PRESETS: { name: string; hint: string; set: Partial<SiteConfig["header"]> }[] = [
+  { name: "Client flow", hint: "Click to open · subcategories collapsed · mega menu", set: { menuStyle: "mega", menuTrigger: "click", menuSubcategories: "collapsed", menuImages: true } },
+  { name: "Simple dropdown", hint: "Click · compact list · expand to see subcategories", set: { menuStyle: "dropdown", menuTrigger: "click", menuSubcategories: "collapsed", menuImages: false } },
+  { name: "Department store", hint: "Hover · every category in columns with pictures", set: { menuStyle: "columns", menuTrigger: "hover", menuSubcategories: "expanded", menuImages: true } },
+  { name: "Side drawer", hint: "Click · slides in from the left · collapsed", set: { menuStyle: "drawer", menuTrigger: "click", menuSubcategories: "collapsed" } },
+  { name: "Top level only", hint: "Click · categories only, subcategories on their pages", set: { menuStyle: "dropdown", menuTrigger: "click", menuSubcategories: "hidden", menuImages: false } },
+  { name: "Visual mega menu", hint: "Hover · subcategories shown · big pictures", set: { menuStyle: "mega", menuTrigger: "hover", menuSubcategories: "expanded", menuImages: true } },
+];
+
 export function HeaderTab({ header, logo }: { header: SiteConfig["header"]; logo: SiteConfig["logo"] }) {
   const h = useSection("header", header);
   const l = useSection("logo", logo);
@@ -59,7 +69,52 @@ export function HeaderTab({ header, logo }: { header: SiteConfig["header"]; logo
             <SwitchRow label="Category links under the Store search header" hint={'The "All categories" button always stays'} checked={h.v.showCategoryBar} onChange={(x) => h.set("showCategoryBar", x)} />
           </div>
           <Choice
-            label="Category menu opens"
+            label="Announcement bar (text is in Settings)"
+            value={h.v.announcement}
+            onChange={(x) => h.set("announcement", x)}
+            options={[
+              { value: "bar", label: "Static bar" },
+              { value: "marquee", label: "Scrolling" },
+              { value: "hidden", label: "Hidden" },
+            ]}
+          />
+        </Panel>
+
+        <Panel id="category-menu" title="Category menu flow" description="How customers browse categories from the header (desktop and phone). Patterns such as Mugs → Tapered / Round / Classic never appear in the menu; customers pick them on the category page.">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Ready-made flows</p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {MENU_PRESETS.map((p) => {
+                const on = (Object.keys(p.set) as (keyof typeof p.set)[]).every((k) => h.v[k] === p.set[k]);
+                return (
+                  <button
+                    key={p.name}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => h.update((v) => ({ ...v, ...p.set }))}
+                    className={`rounded-md border p-3 text-left text-sm transition-colors ${on ? "border-ink ring-1 ring-ink" : "border-line hover:border-muted"}`}
+                  >
+                    <span className="block font-medium">{p.name}</span>
+                    <span className="block text-xs text-muted">{p.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <Choice
+            label="Menu design"
+            value={h.v.menuStyle}
+            onChange={(x) => h.set("menuStyle", x)}
+            columns={4}
+            options={[
+              { value: "mega", label: "Mega menu", hint: "Full-width panel, list + pictures" },
+              { value: "dropdown", label: "Dropdown", hint: "Small panel under the button" },
+              { value: "columns", label: "Columns", hint: "Every category with its subcategories" },
+              { value: "drawer", label: "Side drawer", hint: "Slides in from the left" },
+            ]}
+          />
+          <Choice
+            label="Menu opens"
             value={h.v.menuTrigger}
             onChange={(x) => h.set("menuTrigger", x)}
             columns={2}
@@ -72,22 +127,21 @@ export function HeaderTab({ header, logo }: { header: SiteConfig["header"]; logo
             label="Subcategories in the menu"
             value={h.v.menuSubcategories}
             onChange={(x) => h.set("menuSubcategories", x)}
-            columns={2}
+            columns={3}
             options={[
-              { value: "collapsed", label: "Collapsed", hint: "Shown only when the customer expands a category" },
+              { value: "collapsed", label: "Collapsed", hint: "Shown when the customer expands a category" },
               { value: "expanded", label: "Always shown" },
+              { value: "hidden", label: "Not in the menu", hint: "Top categories only; subcategories on the category page" },
             ]}
           />
-          <Choice
-            label="Announcement bar (text is in Settings)"
-            value={h.v.announcement}
-            onChange={(x) => h.set("announcement", x)}
-            options={[
-              { value: "bar", label: "Static bar" },
-              { value: "marquee", label: "Scrolling" },
-              { value: "hidden", label: "Hidden" },
-            ]}
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Menu button text" htmlFor="mlabel"><TextInput id="mlabel" maxLength={30} value={h.v.menuLabel} onChange={(e) => h.set("menuLabel", e.target.value)} /></Field>
+            <div className="grid gap-2">
+              <SwitchRow label="Category pictures in the menu" hint="Mega menu and columns" checked={h.v.menuImages} onChange={(x) => h.set("menuImages", x)} />
+              <SwitchRow label={`“${h.v.menuLabel || "All categories"} →” link`} checked={h.v.menuAllLink} onChange={(x) => h.set("menuAllLink", x)} />
+            </div>
+          </div>
+          <p className="text-xs text-muted">The pattern page design (tiles, cards, buttons, list, carousel) is in Studio → Pages → Category pages.</p>
         </Panel>
         <SaveBar {...h} label="Save header" />
       </div>
@@ -141,7 +195,58 @@ export function HeaderTab({ header, logo }: { header: SiteConfig["header"]; logo
             )}
           </div>
         </Panel>
+        <Panel id="favicon" title="Browser tab icon (favicon)" description="The small icon in the browser tab and bookmarks, also used when the store is added to a phone's home screen.">
+          <Choice
+            label="Icon"
+            value={l.v.faviconSource}
+            onChange={(x) => l.set("faviconSource", x)}
+            options={[
+              { value: "generated", label: "Initials", hint: "Letters of the logo on a tile in the theme colours" },
+              { value: "logo", label: "Same as the logo", hint: l.v.image ? "Uses the uploaded logo picture" : "Upload a logo picture above first" },
+              { value: "upload", label: "Upload an icon", hint: "A separate square picture" },
+            ]}
+          />
+          {l.v.faviconSource === "upload" && (
+            <ImageUploader folder="brand" max={1} label="Icon picture" value={l.v.favicon ? [l.v.favicon] : []} onChange={(imgs) => l.set("favicon", imgs[0] ?? null)} />
+          )}
+          {l.v.faviconSource === "logo" && !l.v.image && <p className="text-sm text-mto">There is no logo picture yet. Switch the logo to “Image” above and upload one, or the initials are used.</p>}
+          <p className="text-xs text-muted">Use a square PNG or JPG (at least 512 × 512 px). SVG works too. Other formats fall back to the initials.</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Choice label="Background" value={l.v.faviconBg} onChange={(x) => l.set("faviconBg", x)} columns={3} options={[{ value: "theme", label: "Theme colour" }, { value: "white", label: "White" }, { value: "transparent", label: "None" }]} />
+            <RangeField label="Space around the picture" value={l.v.faviconPadding} min={0} max={30} unit="%" onChange={(x) => l.set("faviconPadding", x)} />
+          </div>
+          <FaviconPreview logo={l.v} />
+        </Panel>
         <SaveBar {...l} label="Save logo" />
+      </div>
+    </div>
+  );
+}
+
+/** Live preview of the tab icon from the unsaved settings (the real icon updates after saving). */
+function FaviconPreview({ logo }: { logo: SiteConfig["logo"] }) {
+  const pic = logo.faviconSource === "upload" ? logo.favicon : logo.faviconSource === "logo" ? logo.image : null;
+  const letters = (logo.mark || [logo.textBefore, logo.textAfter].filter(Boolean).map((w) => w[0]).join("&") || "S").slice(0, 3);
+  const bg = logo.faviconBg === "transparent" ? "bg-transparent" : logo.faviconBg === "white" ? "bg-white" : "bg-ink";
+  const tile = (px: number, round: boolean) => (
+    <span className={`relative flex shrink-0 items-center justify-center overflow-hidden ${bg} ${round ? "rounded-[22%]" : ""}`} style={{ width: px, height: px, padding: px <= 32 ? 0 : (px * logo.faviconPadding) / 100 }}>
+      {pic ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={pic.url} alt="" className="size-full object-contain" />
+      ) : (
+        <span className={`font-serif font-bold ${logo.faviconBg === "theme" ? "text-canvas" : "text-ink"}`} style={{ fontSize: px * (letters.length > 2 ? 0.34 : 0.46) }}>{letters}</span>
+      )}
+    </span>
+  );
+  return (
+    <div className="flex flex-wrap items-end gap-6 rounded-md border border-line bg-canvas p-4">
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted">Browser tab</p>
+        <span className="flex w-52 items-center gap-2 rounded-t-md border border-b-0 border-line bg-paper px-3 py-2 text-xs">{tile(16, false)}<span className="truncate">{[logo.textBefore, logo.textAccent, logo.textAfter].filter(Boolean).join(" ")}</span></span>
+      </div>
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted">Phone home screen</p>
+        {tile(60, true)}
       </div>
     </div>
   );

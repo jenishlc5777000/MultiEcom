@@ -3,7 +3,7 @@
 import { listingLabels, type Theme } from "@/config/themes";
 import type { SiteConfig } from "@/lib/site-config";
 import { Field, TextInput } from "../form";
-import { Choice, Panel, SaveBar, SwitchRow, useSection, withTheme, type ChoiceOption } from "./shared";
+import { Choice, Panel, RangeField, SaveBar, SwitchRow, useSection, withTheme, type ChoiceOption } from "./shared";
 
 /** Wireframes for the product-list layouts. */
 const cell = "block rounded-[2px] bg-ink/20";
@@ -58,6 +58,31 @@ export function PagesTab({ initial, theme }: { initial: SiteConfig["pages"]; the
           <SwitchRow label="Subcategory navigation" checked={cat.showChips} onChange={(x) => setCat({ showChips: x })} />
           <SwitchRow label="Big page title" hint="Off = a compact heading" checked={cat.showHero} onChange={(x) => setCat({ showHero: x })} />
           <SwitchRow label="Breadcrumb" checked={cat.showBreadcrumb} onChange={(x) => setCat({ showBreadcrumb: x })} />
+        </div>
+        <div className="space-y-4 rounded-md border border-line p-4">
+          <p className="text-sm font-medium">“Choose a pattern first” categories</p>
+          <p className="text-xs text-muted">For categories set to list products only inside their patterns (e.g. Mugs → Tapered, Round, Classic). Turn that on per category in Admin → Categories; Art &amp; Craft and others keep listing products directly.</p>
+          <Choice
+            label="How the patterns are shown"
+            value={cat.patternLayout}
+            onChange={(x) => setCat({ patternLayout: x })}
+            columns={5}
+            options={[
+              { value: "tiles", label: "Tiles", hint: "Picture + name" },
+              { value: "cards", label: "Picture cards", hint: "Name over the picture" },
+              { value: "pills", label: "Buttons", hint: "Compact, small thumbnail" },
+              { value: "list", label: "List", hint: "One row each, with text" },
+              { value: "carousel", label: "Carousel", hint: "Swipe sideways" },
+            ]}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(cat.patternLayout === "tiles" || cat.patternLayout === "cards") && <RangeField label="Columns (desktop)" value={cat.patternColumns} min={2} max={5} unit="" onChange={(x) => setCat({ patternColumns: x })} />}
+            {cat.patternLayout !== "pills" && (
+              <Choice label="Picture shape" value={cat.patternShape} onChange={(x) => setCat({ patternShape: x })} columns={4} options={[{ value: "square", label: "Square" }, { value: "portrait", label: "Tall" }, { value: "landscape", label: "Wide" }, { value: "circle", label: "Circle" }]} />
+            )}
+          </div>
+          <Field label="Text above the patterns" htmlFor="pp" hint="Empty = no text"><TextInput id="pp" maxLength={160} value={cat.patternPrompt} onChange={(e) => setCat({ patternPrompt: e.target.value })} /></Field>
+          <SwitchRow label="Show each pattern's description" hint="From the category's description in Admin → Categories" checked={cat.patternShowDescription} onChange={(x) => setCat({ patternShowDescription: x })} />
         </div>
         {cat.showHero && (
           <Choice label="Title alignment" value={cat.heroAlign} onChange={(x) => setCat({ heroAlign: x })} columns={2} options={[{ value: "left", label: "Left" }, { value: "center", label: "Centred" }]} />

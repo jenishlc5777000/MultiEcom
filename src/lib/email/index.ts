@@ -56,15 +56,17 @@ const STATUS_COPY: Partial<Record<OrderStatus, { subject: string; body: string }
 
 export async function sendOrderStatusEmail(
   to: string,
-  o: { orderNumber: string; status: OrderStatus; note?: string; courier?: string; trackingNumber?: string; trackingUrl?: string },
+  o: { orderNumber: string; status: OrderStatus; note?: string; courier?: string; trackingNumber?: string; trackingUrl?: string; label?: string; message?: string },
 ) {
-  const copy = STATUS_COPY[o.status];
-  if (!copy) return;
+  const base = STATUS_COPY[o.status];
+  if (!base && !o.label) return;
+  // Admin → Orders → Order steps: the step's name and message replace the defaults.
+  const copy = { subject: o.label ? `· ${o.label}` : base!.subject, body: o.message || base?.body || "" };
   const tracking = o.trackingNumber ? `${o.courier ?? "Tracking"}: ${o.trackingNumber}` : "";
   const html = `
     <div style="font-family:Arial,sans-serif;background:#F6F4F0;padding:32px;color:#1A1917">
-      <h1 style="font-family:Georgia,serif;font-weight:normal">Order ${escape(o.orderNumber)} ${copy.subject}</h1>
-      <p>${copy.body}</p>
+      <h1 style="font-family:Georgia,serif;font-weight:normal">Order ${escape(o.orderNumber)} ${escape(copy.subject)}</h1>
+      <p>${escape(copy.body)}</p>
       ${o.note ? `<p><strong>Note:</strong> ${escape(o.note)}</p>` : ""}
       ${tracking ? `<p>${escape(tracking)}${o.trackingUrl ? ` · <a href="${escape(o.trackingUrl)}" style="color:#A24A25">Track parcel</a>` : ""}</p>` : ""}
       <p><a href="${siteConfig.url}/profile" style="color:#A24A25">View your order</a></p>
@@ -76,6 +78,8 @@ export async function sendOrderStatusEmail(
 export async function sendOrderConfirmationEmail(
   to: string,
   order: { orderNumber: string; total: number; items: { productName: string; qty: number; lineTotal: number }[] },
+  /** Text from Orders → Order steps (placed, or confirmed when approved automatically). */
+  message = "The studio will confirm it shortly and email you when it ships.",
 ) {
   const rows = order.items
     .map((i) => `<tr><td>${escape(i.productName)} &times; ${i.qty}</td><td align="right">${formatINR(i.lineTotal)}</td></tr>`)
@@ -83,11 +87,11 @@ export async function sendOrderConfirmationEmail(
   const html = `
     <div style="font-family:Arial,sans-serif;background:#FAF6EF;padding:32px;color:#1F2430">
       <h1 style="font-family:Georgia,serif;color:#0F2A5C">Thank you for your order</h1>
-      <p>We have received your payment for order <strong>${escape(order.orderNumber)}</strong>. The studio will confirm it shortly and email you when it ships.</p>
+      <p>We have received your payment for order <strong>${escape(order.orderNumber)}</strong>. ${escape(message)}</p>
       <table width="100%" cellpadding="6">${rows}
         <tr><td><strong>Total</strong></td><td align="right"><strong>${formatINR(order.total)}</strong></td></tr>
       </table>
       <p><a href="${siteConfig.url}/profile" style="color:#A94E31">View your order</a></p>
     </div>`;
-  await send(to, `We received your order ${order.orderNumber}`, html, `Payment received for order ${order.orderNumber}. Total ${formatINR(order.total)}. We will confirm it shortly.`);
+  await send(to, `We received your order ${order.orderNumber}`, html, `Payment received for order ${order.orderNumber}. Total ${formatINR(order.total)}. ${message}`);
 }

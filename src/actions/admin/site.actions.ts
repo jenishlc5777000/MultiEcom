@@ -13,7 +13,8 @@ import { sendSms } from "@/lib/sms";
 import { objectId } from "@/lib/validations";
 import { setCategoryActive } from "@/services/admin/catalog-admin.service";
 import { deleteMessage, setMessageRead } from "@/services/contact.service";
-import { getIntegrations, LOGIN_METHODS, saveIntegrations, SECRET_FIELDS, SMS_PROVIDERS } from "@/services/integrations.service";
+import { getIntegrations, LOGIN_METHODS, saveIntegrations, SECRET_FIELDS, SMS_PROVIDERS, STORAGE_PROVIDERS } from "@/services/integrations.service";
+import { testStorage } from "@/lib/uploads";
 import { clearSiteDraft, getSiteConfig, resetSiteConfigSection, saveSiteConfigSection, saveSiteDraft } from "@/services/site-config.service";
 import { applyTextEdit, publishSiteDraft } from "@/services/site-draft.service";
 import { ownerAction, UserFacingError } from "./_helpers";
@@ -253,6 +254,19 @@ const integrationsInput = z.object({
     clientSecret: secret,
   }),
   login: z.object({ methods: z.enum(LOGIN_METHODS) }),
+  storage: z.object({
+    provider: z.enum(STORAGE_PROVIDERS),
+    cloudName: z.union([z.string().trim().regex(/^[\w-]{1,100}$/, "The cloud name has only letters, numbers, - and _"), z.literal("")]),
+    cloudKey: z.union([z.string().trim().regex(/^\d{6,30}$/, "The Cloudinary API key is a number"), z.literal("")]),
+    cloudSecret: secret,
+    s3Endpoint: z.union([z.string().trim().url("Endpoint must be a full https:// address").max(300).refine((v) => v.startsWith("https://") || v.startsWith("http://localhost"), "Use https://"), z.literal("")]),
+    s3Region: z.string().trim().max(40).regex(/^[\w-]*$/, "Region looks like ap-south-1 (or auto for R2)"),
+    s3Bucket: z.union([z.string().trim().regex(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/, "Bucket names use lowercase letters, numbers, dots and dashes"), z.literal("")]),
+    s3KeyId: z.string().trim().max(200),
+    s3Secret: secret,
+    s3PublicUrl: z.union([z.string().trim().url("Public URL must be a full https:// address").max(300).refine((v) => v.startsWith("https://"), "Use https://"), z.literal("")]),
+    blobToken: secret,
+  }),
   clear: z.array(z.enum(SECRET_FIELDS)).default([]),
 });
 
@@ -268,6 +282,11 @@ export async function testEmailAction(to: string) {
     });
     return `Test email sent to ${to}.`;
   });
+}
+
+/** Upload, read back and delete a tiny test image with the saved storage settings. */
+export async function testStorageAction() {
+  return ownerAction(z.object({}), {}, async () => testStorage());
 }
 
 /** Send a test SMS with the saved settings. */

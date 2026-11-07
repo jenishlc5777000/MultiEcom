@@ -1,3 +1,4 @@
+import { getProductCardsByIds } from "@/services/merch.service";
 import { RecentlyViewed } from "@/components/shopping/recently-viewed";
 import { BuilderHome } from "@/components/builder/builder-home";
 import { BentoHome } from "@/components/home/modes/bento-home";
@@ -27,14 +28,24 @@ export default async function HomePage({ searchParams }: Props) {
 
   // Studio → Content → Hero decides whether an active homepage banner replaces the hero text.
   const banner = site.content.hero.useBanner ? banners[0] : undefined;
+  // Studio → Content → Hero: uploaded pictures and the featured card.
+  const hero = site.content.hero;
+  const uploaded = hero.images.map((i) => ({ url: i.url, alt: i.alt }));
+  const fromProducts = async () => {
+    const list = hero.productSource === "chosen" ? await getProductCardsByIds(hero.productIds) : hero.productSource === "ready" ? readyStock : newest;
+    return list.flatMap((p) => (p.image ? [{ url: p.image.url, alt: p.image.alt || p.name }] : [])).slice(0, hero.productCount);
+  };
+  const pictures = hero.imageSource === "products" ? await fromProducts() : hero.imageSource === "upload" ? uploaded : uploaded.length ? uploaded : [];
+  const picked = hero.featured === "product" && hero.featuredProductId ? (await getProductCardsByIds([hero.featuredProductId]))[0] : undefined;
   const data: HomeData = {
     theme,
     site,
     banner,
-    heroImage: banner?.image ?? newest[0]?.image ?? categories[0]?.image,
+    heroImage: pictures[0] ?? banner?.image ?? newest[0]?.image ?? categories[0]?.image,
+    heroSlides: hero.rotate && pictures.length > 1 ? pictures : undefined,
     storyImage: newest[1]?.image ?? categories[1]?.image ?? newest[0]?.image,
-    gallery: [...newest, ...readyStock].flatMap((p) => (p.image ? [p.image] : [])).slice(0, 6),
-    featured: readyStock[0] ?? newest[0],
+    gallery: [...pictures, ...[...newest, ...readyStock].flatMap((p) => (p.image ? [p.image] : []))].slice(0, 6),
+    featured: hero.featured === "hide" ? undefined : (picked ?? readyStock[0] ?? newest[0]),
     // Real catalogue numbers only; anything that is zero is left out.
     stats: [
       { value: highlights.readyCount, label: "ready to ship" },

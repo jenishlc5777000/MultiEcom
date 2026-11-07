@@ -87,10 +87,10 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 /** Order update SMS, only when "SMS order updates" is on in Admin → Integrations. */
-export async function sendOrderStatusSms(phone: string, orderNumber: string, status: string, trackingUrl?: string) {
+export async function sendOrderStatusSms(phone: string, orderNumber: string, status: string, trackingUrl?: string, label?: string) {
   const { sms } = await getIntegrations();
   if (!sms.orderUpdates || sms.provider === "none") return;
-  const what = STATUS_TEXT[status];
+  const what = label ? `update: ${label}` : STATUS_TEXT[status];
   if (!what) return;
   await sendSms(phone, `${siteConfig.name}: your order ${orderNumber} ${what}.${trackingUrl ? ` Track: ${trackingUrl}` : ""}`);
 }

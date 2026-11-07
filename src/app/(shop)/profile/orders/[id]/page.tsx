@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CancelOrderButton } from "@/components/account/cancel-order-button";
 import { ReturnRequestForm } from "@/components/account/return-request-form";
 import { PageHero } from "@/components/content/page-hero";
 import { requireUser } from "@/lib/auth/guards";
@@ -9,11 +10,11 @@ import { ORDER_STATUS_LABEL, RETURN_REASON_LABEL, type OrderStatus } from "@/lib
 import { formatINR } from "@/lib/utils";
 import { objectId } from "@/lib/validations";
 import { Order } from "@/models";
+import { customerCanCancel, customerProgress, stepLabel } from "@/lib/order-flow";
+import { getOrderFlow } from "@/services/order-flow.service";
 import { getReturnEligibility, getReturnsForOrder } from "@/services/return.service";
 
 export const metadata = { title: "Your order" };
-
-const STEPS: OrderStatus[] = ["AWAITING_APPROVAL", "CONFIRMED", "DISPATCHED", "DELIVERED"];
 
 export default async function CustomerOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,31 +25,38 @@ export default async function CustomerOrderPage({ params }: { params: Promise<{ 
   if (!order) notFound();
 
   const status = order.status as OrderStatus;
-  const [eligibility, returns] = await Promise.all([getReturnEligibility(user.id, id), getReturnsForOrder(id)]);
-  const stepIndex = STEPS.indexOf(status === "IN_PRODUCTION" ? "CONFIRMED" : status);
-  const history = (order.timeline ?? []).filter((t) => !t.internal);
+  const [eligibility, returns, flow] = await Promise.all([getReturnEligibility(user.id, id), getReturnsForOrder(id), getOrderFlow()]);
+  // Admin → Orders → Order steps: names, messages, courier stages, cancel rule.
+  const steps = customerProgress(flow, order);
+  const lastStage = status === "DISPATCHED" ? order.dispatch?.stages?.at(-1) : undefined;
+  const stageMsg = lastStage ? flow.shipping.stages.find((x) => x.id === lastStage.id)?.message : undefined;
+  const message = lastStage ? lastStage.note || stageMsg : (flow.steps as Record<string, { message: string } | undefined>)[status]?.message;
+  const title = lastStage?.label ?? stepLabel(flow, status, ORDER_STATUS_LABEL[status]);
+  const history = flow.customer.showHistory ? (order.timeline ?? []).filter((t) => !t.internal) : [];
+  const canCancel = customerCanCancel(flow, status, order.paymentStatus);
   const closed = status === "CANCELLED" || status === "RETURNED" || status === "PENDING_PAYMENT";
 
   return (
     <div>
-      <PageHero eyebrow={`Order ${order.orderNumber}`} title={ORDER_STATUS_LABEL[status]} lead={`Placed ${order.createdAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })} · ${formatINR(order.total)}`} />
+      <PageHero eyebrow={`Order ${order.orderNumber}`} title={title} lead={`Placed ${order.createdAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })} · ${formatINR(order.total)}`} />
 
       <div className="container grid gap-12 lg:grid-cols-12">
         <div className="space-y-10 lg:col-span-7">
           {!closed && (
-            <ol className="grid grid-cols-4 gap-2" aria-label="Order progress">
-              {STEPS.map((s, i) => (
-                <li key={s} className="space-y-2">
-                  <div className={`h-1 rounded-full transition-colors duration-700 ${i <= stepIndex ? "bg-ink" : "bg-line"}`} />
-                  <p className={`text-xs ${i <= stepIndex ? "text-ink" : "text-muted"}`}>
-                    {s === "CONFIRMED" && status === "IN_PRODUCTION" ? "Being made" : ORDER_STATUS_LABEL[s]}
-                    {i === stepIndex && <span className="sr-only"> (current)</span>}
+            <ol className="grid gap-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }} aria-label="Order progress">
+              {steps.map((s) => (
+                <li key={s.key} className="space-y-2">
+                  <div className={`h-1 rounded-full transition-colors duration-700 ${s.done ? "bg-ink" : "bg-line"}`} />
+                  <p className={`text-xs leading-snug ${s.current ? "font-medium text-ink" : s.done ? "text-ink" : "text-muted"}`}>
+                    {s.label}
+                    {s.current && <span className="sr-only"> (current)</span>}
                   </p>
                 </li>
               ))}
             </ol>
           )}
-          {status === "AWAITING_APPROVAL" && <p className="text-muted">Your payment is received. The studio will confirm your order shortly.</p>}
+          {message && status !== "PENDING_PAYMENT" && <p className="text-muted">{message}</p>}
+          {canCancel && <CancelOrderButton orderId={id} />}
 
           {order.dispatch?.trackingNumber && (
             <div className="rounded-lg bg-surface p-5">
@@ -95,19 +103,19 @@ export default async function CustomerOrderPage({ params }: { params: Promise<{ 
         </div>
 
         <aside className="space-y-8 lg:col-span-4 lg:col-start-9">
-          <div>
+          {history.length > 0 && <div>
             <p className="eyebrow mb-3">History</p>
             <ol className="space-y-4 border-l border-line pl-5">
               {[...history].reverse().map((t, i) => (
                 <li key={i} className="relative text-sm">
                   <span className={`absolute -left-[25px] top-1.5 size-2 rounded-full ${i === 0 ? "bg-ink" : "bg-line"}`} aria-hidden />
-                  <p className="font-medium">{ORDER_STATUS_LABEL[t.status as OrderStatus] ?? t.status}</p>
-                  {t.note && t.by !== "system" && <p className="text-muted">{t.note}</p>}
+                  <p className="font-medium">{t.label ?? stepLabel(flow, t.status ?? "", ORDER_STATUS_LABEL[t.status as OrderStatus] ?? t.status ?? "")}</p>
+                  {t.note && t.by !== "system" && flow.customer.showNotes && <p className="text-muted">{t.note}</p>}
                   <p className="text-xs text-muted">{new Date(t.at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</p>
                 </li>
               ))}
             </ol>
-          </div>
+          </div>}
           <div>
             <p className="eyebrow mb-3">Delivering to</p>
             <address className="text-sm not-italic leading-relaxed">

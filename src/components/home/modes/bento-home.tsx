@@ -66,7 +66,7 @@ export function BentoHome(d: HomeData) {
               {d.featured.image && <Image src={d.featured.image.url} alt="" fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover transition-transform duration-1000 group-hover:scale-105" />}
               <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-3 rounded-md bg-paper/90 p-4 backdrop-blur">
                 <div className="min-w-0">
-                  <p className="text-eyebrow uppercase text-accent">Featured</p>
+                  <p className="text-eyebrow uppercase text-accent">{d.site.content.hero.featuredLabel}</p>
                   <p className="truncate font-medium">{d.featured.name}</p>
                 </div>
                 <span className="shrink-0 tabular-nums">{formatINR(d.featured.priceFrom)}</span>

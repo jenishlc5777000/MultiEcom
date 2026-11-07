@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { ArrowDown, ArrowUp, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { SiteConfig } from "@/lib/site-config";
+import { MERCH_PAGES, merchPageLabels, type MerchPage, type SiteConfig } from "@/lib/site-config";
 import { formatINR } from "@/lib/utils";
 import type { PickerProduct } from "@/services/merch.service";
 import { Field, TextInput } from "../form";
@@ -66,6 +66,7 @@ export function ShoppingTab({ initial, products }: { initial: SiteConfig["shoppi
               {text("of-s", "Text below", v.offers.subtitle, (x) => off({ subtitle: x }), 200)}
             </div>
             <SwitchRow label="Also include every discounted product" hint="Any product with a compare-at price above its price" checked={v.offers.includeDiscounted} onChange={(x) => off({ includeDiscounted: x })} />
+            <Placement value={v.offers} onChange={off} />
             <ProductPicker label="Offer products" products={products} value={v.offers.productIds} onChange={(ids) => off({ productIds: ids })} />
           </>
         )}
@@ -82,6 +83,7 @@ export function ShoppingTab({ initial, products }: { initial: SiteConfig["shoppi
                 <TextInput id="hd-end" type="datetime-local" value={v.hotDeals.endsAt.slice(0, 16)} onChange={(e) => hot({ endsAt: e.target.value })} />
               </Field>
             </div>
+            <Placement value={v.hotDeals} onChange={hot} />
             <ProductPicker label="Hot deal products" products={products} value={v.hotDeals.productIds} onChange={(ids) => hot({ productIds: ids })} />
           </>
         )}
@@ -105,6 +107,7 @@ export function ShoppingTab({ initial, products }: { initial: SiteConfig["shoppi
                 { value: "manual", label: "Choose myself", hint: "The products picked below" },
               ]}
             />
+            <Placement value={v.bestsellers} onChange={best} />
             <RangeField label="How many" value={v.bestsellers.count} min={2} max={24} unit="" onChange={(x) => best({ count: x })} />
             {v.bestsellers.mode === "manual" && <ProductPicker label="Most ordered products" products={products} value={v.bestsellers.productIds} onChange={(ids) => best({ productIds: ids })} />}
           </>
@@ -113,6 +116,35 @@ export function ShoppingTab({ initial, products }: { initial: SiteConfig["shoppi
 
       <SaveBar {...s} label="Save shopping settings" />
     </div>
+  );
+}
+
+/** "Show on pages": the store pages this list also appears on, top or bottom, and how many products. */
+function Placement({ value, onChange }: { value: { showOn: MerchPage[]; position: "top" | "bottom"; placeCount: number }; onChange: (p: Partial<{ showOn: MerchPage[]; position: "top" | "bottom"; placeCount: number }>) => void }) {
+  const toggle = (p: MerchPage, on: boolean) => onChange({ showOn: on ? MERCH_PAGES.filter((x) => x === p || value.showOn.includes(x)) : value.showOn.filter((x) => x !== p) });
+  return (
+    <fieldset className="space-y-3 rounded-md border border-line p-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <legend className="text-sm font-medium">Show on pages</legend>
+        <button type="button" className="text-xs underline" onClick={() => onChange({ showOn: [...MERCH_PAGES] })}>All</button>
+        <button type="button" className="text-xs underline" onClick={() => onChange({ showOn: [] })}>None</button>
+      </div>
+      <p className="text-xs text-muted">Tick the pages where this list should appear. It is always on the Offers &amp; deals page.</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {MERCH_PAGES.map((p) => (
+          <label key={p} className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={value.showOn.includes(p)} onChange={(e) => toggle(p, e.target.checked)} />
+            {merchPageLabels[p]}
+          </label>
+        ))}
+      </div>
+      {value.showOn.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Choice label="Where on the page" value={value.position} onChange={(x) => onChange({ position: x })} columns={2} options={[{ value: "top", label: "Top", hint: "Below the header" }, { value: "bottom", label: "Bottom", hint: "Above the footer" }]} />
+          <RangeField label="Products shown there" value={value.placeCount} min={2} max={12} unit="" onChange={(x) => onChange({ placeCount: x })} />
+        </div>
+      )}
+    </fieldset>
   );
 }
 

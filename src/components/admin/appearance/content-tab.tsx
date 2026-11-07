@@ -2,13 +2,15 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import type { SiteConfig } from "@/lib/site-config";
+import type { PickerProduct } from "@/services/merch.service";
+import { ImageUploader } from "../image-uploader";
 import { Field, TextArea, TextInput } from "../form";
-import { Panel, SaveBar, SwitchRow, useSection } from "./shared";
+import { Choice, Panel, RangeField, SaveBar, SwitchRow, useSection } from "./shared";
 
 const TIP = 'Use "/" for a line break and *asterisks* to highlight a word.';
 
 /** All storefront text: hero, section titles, story, process, closing call to action, contact page. */
-export function ContentTab({ initial }: { initial: SiteConfig["content"] }) {
+export function ContentTab({ initial, products = [] }: { initial: SiteConfig["content"]; products?: PickerProduct[] }) {
   const s = useSection("content", initial);
   const c = s.v;
   const sub = <K extends keyof typeof c>(k: K) => (patch: Partial<(typeof c)[K]>) => s.set(k, { ...c[k], ...patch });
@@ -25,6 +27,85 @@ export function ContentTab({ initial }: { initial: SiteConfig["content"] }) {
   return (
     <div className="space-y-6">
       <Panel id="content-hero" title="Hero">
+        <div className="space-y-4 rounded-md border border-line p-4">
+          <Choice
+            label="Hero picture"
+            value={c.hero.imageSource}
+            onChange={(imageSource) => hero({ imageSource })}
+            options={[
+              { value: "auto", label: "Automatic", hint: "My pictures if uploaded, else the newest product photo" },
+              { value: "upload", label: "My own pictures", hint: "Only the pictures uploaded below" },
+              { value: "products", label: "Product pictures", hint: "Taken from your products, always up to date" },
+            ]}
+          />
+          {c.hero.imageSource !== "products" ? (
+            <>
+              <ImageUploader folder="banners" max={6} label="Hero pictures" value={c.hero.images} onChange={(images) => hero({ images })} />
+              <p className="text-xs text-muted">Upload, reorder (first = main picture) or remove. Wide pictures (about 1600 × 1200 px) look best.</p>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <Choice
+                label="Which products"
+                value={c.hero.productSource}
+                onChange={(productSource) => hero({ productSource })}
+                options={[
+                  { value: "newest", label: "Newest", hint: "Changes as you add products" },
+                  { value: "ready", label: "Ready to ship", hint: "In-stock pieces" },
+                  { value: "chosen", label: "Choose products" },
+                ]}
+              />
+              {c.hero.productSource === "chosen" ? (
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-medium">Products ({c.hero.productIds.length}/12, in this order)</legend>
+                  <ol className="space-y-1.5">
+                    {c.hero.productIds.map((id, n) => {
+                      const p = products.find((x) => x.id === id);
+                      return (
+                        <li key={id} className="flex items-center justify-between gap-2 rounded-md border border-line px-3 py-1.5 text-sm">
+                          <span className="truncate">{n + 1}. {p?.name ?? "Removed product"}{p && !p.image ? " (no photo)" : ""}</span>
+                          <button type="button" className="text-xs text-muted hover:text-danger" onClick={() => hero({ productIds: c.hero.productIds.filter((x) => x !== id) })}>Remove</button>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                  {c.hero.productIds.length < 12 && (
+                    <select aria-label="Add a product" className="h-11 w-full rounded-md border border-line bg-paper px-3 text-sm" value="" onChange={(e) => e.target.value && hero({ productIds: [...c.hero.productIds, e.target.value] })}>
+                      <option value="">Add a product…</option>
+                      {products.filter((p) => !c.hero.productIds.includes(p.id) && p.image).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  )}
+                </fieldset>
+              ) : (
+                <RangeField label="How many pictures" value={c.hero.productCount} min={2} max={12} unit="" onChange={(productCount) => hero({ productCount })} />
+              )}
+            </div>
+          )}
+          <SwitchRow label="Change the picture automatically" hint="Slideshow when there is more than one picture; otherwise the first one is shown" checked={c.hero.rotate} onChange={(rotate) => hero({ rotate })} />
+          {c.hero.rotate && <RangeField label="Seconds per picture" value={c.hero.rotateSeconds} min={3} max={20} unit="s" onChange={(rotateSeconds) => hero({ rotateSeconds })} />}
+          {(c.hero.images.length > 0 || c.hero.imageSource === "products") && (
+            <Choice label="How the picture fits" value={c.hero.imageFit} onChange={(imageFit) => hero({ imageFit })} columns={2} options={[{ value: "cover", label: "Fill the frame", hint: "Edges may be cropped" }, { value: "contain", label: "Show the whole picture", hint: "For cut-out product shots" }]} />
+          )}
+          <Choice
+            label="Product card on the picture"
+            value={c.hero.featured}
+            onChange={(featured) => hero({ featured })}
+            options={[
+              { value: "auto", label: "Automatic", hint: "Newest in-stock piece" },
+              { value: "product", label: "Choose a product" },
+              { value: "hide", label: "Hide the card" },
+            ]}
+          />
+          {c.hero.featured === "product" && (
+            <Field label="Product" htmlFor="hfp">
+              <select id="hfp" className="h-11 w-full rounded-md border border-line bg-paper px-3 text-sm" value={c.hero.featuredProductId} onChange={(e) => hero({ featuredProductId: e.target.value })}>
+                <option value="">Choose…</option>
+                {products.map((p) => <option key={p.id} value={p.id}>{p.name}{p.status !== "ACTIVE" ? " (not active)" : ""}</option>)}
+              </select>
+            </Field>
+          )}
+          {c.hero.featured !== "hide" && <Field label="Card label" htmlFor="hfl">{input("hfl", c.hero.featuredLabel, (x) => hero({ featuredLabel: x }), 30)}</Field>}
+        </div>
         <SwitchRow label="Use the homepage banner when one is active" hint="On: an active banner's title, text and photo replace the text below. Off: always use this text." checked={c.hero.useBanner} onChange={(x) => hero({ useBanner: x })} />
         <SwitchRow label="Show the numbers under the hero" hint="Ready to ship · glazes · categories" checked={c.hero.showStats} onChange={(x) => hero({ showStats: x })} />
         <div className="grid gap-4 sm:grid-cols-2">

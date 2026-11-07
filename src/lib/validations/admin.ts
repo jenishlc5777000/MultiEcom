@@ -109,6 +109,7 @@ export const orderActionInput = z.discriminatedUnion("action", [
     trackingNumber: z.string().trim().min(3).max(60),
     trackingUrl: z.union([z.string().trim().url(), z.literal("")]).optional().transform((v) => v || undefined),
   }),
+  z.object({ action: z.literal("ship_stage"), stageId: z.string().trim().regex(/^[a-z0-9-]{1,30}$/), note: optionalText(300) }),
   z.object({ action: z.literal("deliver") }),
   z.object({ action: z.literal("cancel"), reason: z.string().trim().min(3).max(500) }),
   z.object({ action: z.literal("note"), note: z.string().trim().min(1).max(1000) }),

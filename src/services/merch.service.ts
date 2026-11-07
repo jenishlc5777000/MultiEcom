@@ -87,3 +87,31 @@ export async function listProductsForPicker() {
   }));
 }
 export type PickerProduct = Awaited<ReturnType<typeof listProductsForPicker>>[number];
+
+/** A list placed on store pages from Studio → Shopping → "Show on pages". */
+export type PlacedList = {
+  id: "offers" | "hot-deals" | "most-ordered";
+  title: string;
+  subtitle: string;
+  pages: string[];
+  position: "top" | "bottom";
+  endsAt: string;
+  products: ProductCardDTO[];
+};
+
+/** Lists that are on and placed on at least one page (empty lists are dropped). */
+export async function getPlacedLists(s: ShoppingConfig): Promise<PlacedList[]> {
+  const live = (x: { enabled: boolean; showOn: string[] }) => x.enabled && x.showOn.length > 0;
+  const [offers, hot, best] = await Promise.all([
+    live(s.offers) ? getOfferProducts({ productIds: s.offers.productIds, includeDiscounted: s.offers.includeDiscounted }, s.offers.placeCount) : [],
+    live(s.hotDeals) ? getHotDealProducts(s.hotDeals.productIds) : [],
+    live(s.bestsellers) ? getBestsellerProducts({ mode: s.bestsellers.mode, productIds: s.bestsellers.productIds, count: s.bestsellers.count }) : [],
+  ]);
+  const dealEnds = s.hotDeals.endsAt && Date.parse(s.hotDeals.endsAt) > Date.now() ? s.hotDeals.endsAt : "";
+  const lists: PlacedList[] = [
+    { id: "hot-deals", title: s.hotDeals.title, subtitle: s.hotDeals.subtitle, pages: s.hotDeals.showOn, position: s.hotDeals.position, endsAt: dealEnds, products: hot.slice(0, s.hotDeals.placeCount) },
+    { id: "offers", title: s.offers.title, subtitle: s.offers.subtitle, pages: s.offers.showOn, position: s.offers.position, endsAt: "", products: offers.slice(0, s.offers.placeCount) },
+    { id: "most-ordered", title: s.bestsellers.title, subtitle: s.bestsellers.subtitle, pages: s.bestsellers.showOn, position: s.bestsellers.position, endsAt: "", products: best.slice(0, s.bestsellers.placeCount) },
+  ];
+  return lists.filter((l) => l.pages.length && l.products.length);
+}

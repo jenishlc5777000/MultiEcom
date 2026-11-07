@@ -48,7 +48,7 @@ export const getCategoryBySlug = cache(sharedCache(async (slug: string) => {
     ? await Category.find({ parent: { $in: children.map((k) => k._id) }, isActive: true }).select("_id").lean()
     : [];
   const siblings = parent ? await Category.find({ parent: parent._id, isActive: true }).sort({ sortOrder: 1, name: 1 }).lean() : [];
-  const card = (k: { _id: unknown; name: string; slug: string; image?: unknown }) => ({ id: String(k._id), name: k.name, slug: k.slug, image: toImage(k.image as never, k.name) });
+  const card = (k: { _id: unknown; name: string; slug: string; image?: unknown; description?: string | null }) => ({ id: String(k._id), name: k.name, slug: k.slug, image: toImage(k.image as never, k.name), description: k.description ?? "" });
 
   // Which links to show above the products.
   let nav: CategoryNav | null = null;

@@ -1,3 +1,4 @@
+import { ScrollRow } from "./scroll-row";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ORDER_STATUS_LABEL, type OrderStatus, type ReturnStatus, type ReviewStatus } from "@/lib/constants";
@@ -147,7 +148,7 @@ export function SearchInput({ name = "q", defaultValue, placeholder }: { name?: 
 
 export function Tabs({ items, current }: { items: { href: string; label: string; count?: number; value: string }[]; current: string }) {
   return (
-    <nav aria-label="Filter" className="no-scrollbar -mx-1 mb-6 flex gap-1 overflow-x-auto px-1">
+    <ScrollRow label="Sections" className="-mx-1">
       {items.map((t) => {
         const active = t.value === current;
         return (
@@ -167,7 +168,7 @@ export function Tabs({ items, current }: { items: { href: string; label: string;
           </Link>
         );
       })}
-    </nav>
+    </ScrollRow>
   );
 }
 

@@ -8,7 +8,9 @@ import { sendOrderStatusSms } from "@/lib/sms";
 import { getPaymentProvider } from "@/lib/payments";
 import type { OrderActionInput } from "@/lib/validations/admin";
 import { Order, Payment, User } from "@/models";
+import { customerCanCancel, trackingLink, type OrderFlow } from "@/lib/order-flow";
 import { releaseLines } from "../inventory.service";
+import { getOrderFlow } from "../order-flow.service";
 
 export class OrderActionError extends DomainError {}
 
@@ -18,13 +20,16 @@ const ALLOWED: Record<OrderActionInput["action"], OrderStatus[]> = {
   reject: ["AWAITING_APPROVAL"],
   start_production: ["CONFIRMED"],
   dispatch: ["CONFIRMED", "IN_PRODUCTION"],
+  ship_stage: ["DISPATCHED"],
   deliver: ["DISPATCHED"],
   cancel: ["PENDING_PAYMENT", "AWAITING_APPROVAL", "CONFIRMED", "IN_PRODUCTION"],
   note: ["PENDING_PAYMENT", "AWAITING_APPROVAL", "CONFIRMED", "IN_PRODUCTION", "DISPATCHED", "DELIVERED", "CANCELLED", "RETURNED"],
 };
 
-export function allowedActions(status: OrderStatus) {
-  return (Object.keys(ALLOWED) as OrderActionInput["action"][]).filter((a) => a !== "note" && ALLOWED[a].includes(status));
+export function allowedActions(status: OrderStatus, flow?: OrderFlow) {
+  return (Object.keys(ALLOWED) as OrderActionInput["action"][]).filter(
+    (a) => a !== "note" && a !== "ship_stage" && ALLOWED[a].includes(status) && !(a === "start_production" && flow?.production.show === "never"),
+  );
 }
 
 const PAGE_SIZE = 25;
@@ -84,7 +89,7 @@ export async function getOrderDetail(id: string) {
  * Apply one owner action. The status filter in each update makes concurrent
  * clicks safe: only the first matching update wins, the rest get "already changed".
  */
-export async function applyOrderAction(orderId: string, input: OrderActionInput, ownerId: string) {
+export async function applyOrderAction(orderId: string, input: OrderActionInput, ownerId: string | null, by: "owner" | "customer" = "owner") {
   await connectDB();
   const order = await Order.findById(orderId).lean();
   if (!order) throw new OrderActionError("Order not found.");
@@ -93,8 +98,10 @@ export async function applyOrderAction(orderId: string, input: OrderActionInput,
     throw new OrderActionError(`Can't ${input.action.replace("_", " ")} an order that is ${from.toLowerCase().replace("_", " ")}.`);
   }
 
-  const owner = new Types.ObjectId(ownerId);
-  const stamp = (status: OrderStatus, note?: string) => ({ status, note, by: "owner" as const, at: new Date() });
+  const owner = ownerId ? new Types.ObjectId(ownerId) : undefined;
+  const flow = await getOrderFlow();
+  let stageNotice: { label: string; message: string } | undefined;
+  const stamp = (status: OrderStatus, note?: string) => ({ status, note, by, at: new Date() });
 
   switch (input.action) {
     case "note":
@@ -112,14 +119,36 @@ export async function applyOrderAction(orderId: string, input: OrderActionInput,
       await transition(orderId, from, "IN_PRODUCTION", { $push: { timeline: stamp("IN_PRODUCTION", input.note ?? "Production started") } });
       break;
 
-    case "dispatch":
+    case "dispatch": {
+      const known = flow.shipping.couriers.some((c) => c.name.toLowerCase() === input.courier.toLowerCase());
+      if (!known && !flow.shipping.allowOther) throw new OrderActionError("Choose one of your couriers (Orders → Order steps).");
+      const trackingUrl = input.trackingUrl || trackingLink(flow, input.courier, input.trackingNumber) || undefined;
       await transition(orderId, from, "DISPATCHED", {
         $set: {
-          dispatch: { courier: input.courier, trackingNumber: input.trackingNumber, trackingUrl: input.trackingUrl, dispatchedAt: new Date() },
+          dispatch: { courier: input.courier, trackingNumber: input.trackingNumber, trackingUrl, dispatchedAt: new Date(), stages: [] },
         },
         $push: { timeline: stamp("DISPATCHED", `${input.courier} · ${input.trackingNumber}`) },
       });
       break;
+    }
+
+    case "ship_stage": {
+      const stage = flow.shipping.stages.find((x) => x.id === input.stageId);
+      if (!stage) throw new OrderActionError("That shipping step no longer exists. Refresh and try again.");
+      if (order.dispatch?.stages?.some((x) => x.id === stage.id)) throw new OrderActionError(`“${stage.label}” is already marked.`);
+      const res = await Order.updateOne(
+        { _id: orderId, status: "DISPATCHED", "dispatch.stages.id": { $ne: stage.id } },
+        {
+          $push: {
+            "dispatch.stages": { id: stage.id, label: stage.label, note: input.note, at: new Date() },
+            timeline: { ...stamp("DISPATCHED", input.note), label: stage.label },
+          },
+        },
+      );
+      if (res.modifiedCount === 0) throw new OrderActionError("This order was changed by someone else. Refresh and try again.");
+      stageNotice = { label: stage.label, message: input.note || stage.message };
+      break;
+    }
 
     case "deliver":
       await transition(orderId, from, "DELIVERED", {
@@ -158,18 +187,30 @@ export async function applyOrderAction(orderId: string, input: OrderActionInput,
     }
   }
 
+  await notifyCustomer(orderId, flow, stageNotice, input.action === "cancel" ? input.reason : undefined);
+}
+
+/**
+ * Email / SMS the customer about the order's new step, using the names and
+ * messages from Orders → Order steps (and its "notify" switches).
+ */
+export async function notifyCustomer(orderId: string, flow: OrderFlow, stage?: { label: string; message: string }, cancelReason?: string) {
   const fresh = await Order.findById(orderId).select("email orderNumber status dispatch approval notes shippingAddress.phone").lean();
-  if (fresh) {
+  const step = fresh && (flow.steps as Record<string, { label: string; message: string; notify: boolean } | undefined>)[fresh.status];
+  const send = stage ? flow.shipping.notifyStages : (step?.notify ?? true);
+  if (fresh && send) {
     sendOrderStatusEmail(fresh.email, {
       orderNumber: fresh.orderNumber,
       status: fresh.status as OrderStatus,
-      note: fresh.approval?.reason ?? (input.action === "cancel" ? input.reason : undefined),
+      note: (fresh.approval?.decision === "REJECTED" ? fresh.approval.reason : undefined) ?? cancelReason,
+      label: stage?.label ?? step?.label,
+      message: stage?.message ?? step?.message,
       trackingUrl: fresh.dispatch?.trackingUrl ?? undefined,
       trackingNumber: fresh.dispatch?.trackingNumber ?? undefined,
       courier: fresh.dispatch?.courier ?? undefined,
     }).catch((e) => console.error("[email] order status", e));
     if (fresh.shippingAddress?.phone) {
-      sendOrderStatusSms(fresh.shippingAddress.phone, fresh.orderNumber, fresh.status, fresh.dispatch?.trackingUrl ?? undefined).catch((e) =>
+      sendOrderStatusSms(fresh.shippingAddress.phone, fresh.orderNumber, fresh.status, fresh.dispatch?.trackingUrl ?? undefined, stage?.label).catch((e) =>
         console.error("[sms] order status", e),
       );
     }
@@ -209,6 +250,16 @@ async function refundOrder(orderId: string) {
       { $set: { refund: { status: "FAILED", amount: order.total, note: e instanceof Error ? e.message : "Refund failed", at: new Date() } } },
     );
   }
+}
+
+/** Customer cancels their own paid order, when Orders → Order steps allows it. Stock goes back and the payment is refunded. */
+export async function cancelOrderByCustomer(orderId: string, userId: string, reason: string) {
+  await connectDB();
+  const order = await Order.findOne({ _id: orderId, user: userId }).select("status paymentStatus").lean();
+  if (!order) throw new OrderActionError("Order not found.");
+  const flow = await getOrderFlow();
+  if (!customerCanCancel(flow, order.status, order.paymentStatus)) throw new OrderActionError("This order can't be cancelled any more. Please contact us.");
+  await applyOrderAction(orderId, { action: "cancel", reason }, null, "customer");
 }
 
 /** Owner marks a pending/failed refund as done after refunding outside the gateway. */

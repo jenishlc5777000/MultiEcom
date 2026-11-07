@@ -12,4 +12,5 @@ export * from "./ReturnRequest";
 export * from "./Message";
 export * from "./HomepageBanner";
 export * from "./Setting";
+export * from "./BlogPost";
 export type { Image, Address } from "./_shared";

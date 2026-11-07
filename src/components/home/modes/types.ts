@@ -12,6 +12,8 @@ export type HomeData = {
   site: SiteConfig;
   banner?: HomeBanner;
   heroImage?: ImageDTO;
+  /** Pictures the hero cycles through (Studio → Content → Hero → change automatically). */
+  heroSlides?: ImageDTO[];
   storyImage?: ImageDTO;
   gallery: ImageDTO[];
   featured?: ProductCardDTO;

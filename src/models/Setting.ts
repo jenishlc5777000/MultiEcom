@@ -18,6 +18,8 @@ const settingSchema = new Schema(
     // (secret fields encrypted, see src/lib/secrets.ts).
     site: { type: Schema.Types.Mixed, default: {} },
     integrations: { type: Schema.Types.Mixed, default: {} },
+    // Admin → Orders → Order steps (validated by src/lib/order-flow.ts).
+    orderFlow: { type: Schema.Types.Mixed, default: {} },
     // Unsaved dashboard changes, shown only to the owner in preview mode.
     siteDraft: { type: Schema.Types.Mixed },
   },

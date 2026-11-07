@@ -104,29 +104,15 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     </div>
   );
 
-  /* "Choose a pattern first": show the sub-subcategories as big tiles, no product list */
+  /* "Choose a pattern first": the patterns (Tapered / Round / Classic…), no product list. Design from Studio → Pages. */
   if (category.requiresChild) {
     return (
       <div data-studio="category-page">
         {header}
         <div className="container space-y-8">
           {breadcrumb}
-          <p className="text-lg text-muted">Choose a style to see the pieces.</p>
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {category.children.map((c) => (
-              <li key={c.id}>
-                <Link href={`/category/${c.slug}`} className="fx-panel group block overflow-hidden rounded-lg border border-line bg-paper transition-shadow hover:shadow-float">
-                  <span className="relative block aspect-square bg-surface">
-                    {c.image && <Image src={c.image.url} alt="" fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />}
-                  </span>
-                  <span className="flex items-center justify-between gap-2 px-4 py-3">
-                    <span className="font-display text-xl">{c.name}</span>
-                    <span aria-hidden className="text-muted transition-transform group-hover:translate-x-1">→</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {opts.patternPrompt && <p className="text-lg text-muted">{opts.patternPrompt}</p>}
+          <PatternPicker items={category.children} opts={opts} />
         </div>
       </div>
     );
@@ -269,4 +255,98 @@ function CategoryTree({ tree, activeSlug }: { tree: CategoryDTO[]; activeSlug: s
       </ul>
     </nav>
   );
+}
+
+/* ───────────── Pattern picker designs ───────────── */
+
+type PatternOpts = { patternLayout: "tiles" | "cards" | "pills" | "list" | "carousel"; patternColumns: number; patternShape: "square" | "portrait" | "landscape" | "circle"; patternShowDescription: boolean };
+type PatternItem = { id: string; name: string; slug: string; image?: { url: string; alt: string }; description?: string };
+
+const SHAPE = { square: "aspect-square", portrait: "aspect-[4/5]", landscape: "aspect-[4/3]", circle: "aspect-square rounded-full" } as const;
+const COLS: Record<number, string> = { 2: "sm:grid-cols-2", 3: "sm:grid-cols-3", 4: "sm:grid-cols-3 lg:grid-cols-4", 5: "sm:grid-cols-3 lg:grid-cols-5" };
+
+function PatternPicker({ items, opts }: { items: PatternItem[]; opts: PatternOpts }) {
+  const pic = (c: PatternItem, sizes: string, extra = "") => (
+    <span className={cn("relative block overflow-hidden bg-surface", SHAPE[opts.patternShape], extra)}>
+      {c.image && <Image src={c.image.url} alt="" fill sizes={sizes} className="object-cover transition-transform duration-700 group-hover:scale-105" />}
+    </span>
+  );
+  const desc = (c: PatternItem) => opts.patternShowDescription && c.description ? <span className="mt-1 block text-sm text-muted">{c.description}</span> : null;
+
+  switch (opts.patternLayout) {
+    case "pills":
+      return (
+        <ul className="flex flex-wrap gap-3">
+          {items.map((c) => (
+            <li key={c.id}>
+              <Link href={`/category/${c.slug}`} className="group inline-flex min-h-12 items-center gap-3 rounded-pill border border-line bg-paper py-1.5 pl-1.5 pr-5 text-[15px] font-medium transition-colors hover:border-ink">
+                {c.image && <span className="relative size-9 overflow-hidden rounded-full bg-surface"><Image src={c.image.url} alt="" fill sizes="36px" className="object-cover" /></span>}
+                {c.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      );
+    case "list":
+      return (
+        <ul className="divide-y divide-line border-y border-line">
+          {items.map((c) => (
+            <li key={c.id}>
+              <Link href={`/category/${c.slug}`} className="group flex items-center gap-5 py-4">
+                <span className="w-24 shrink-0 sm:w-32">{pic(c, "128px", opts.patternShape === "circle" ? "" : "rounded-md")}</span>
+                <span className="min-w-0 flex-1"><span className="font-display text-2xl">{c.name}</span>{desc(c)}</span>
+                <span aria-hidden className="text-xl text-muted transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      );
+    case "carousel":
+      return (
+        <ul className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2">
+          {items.map((c) => (
+            <li key={c.id} className="w-[70%] shrink-0 snap-start sm:w-[40%] lg:w-[24%]">
+              <Link href={`/category/${c.slug}`} className="group block space-y-3">
+                {pic(c, "(min-width: 1024px) 24vw, 70vw", opts.patternShape === "circle" ? "" : "rounded-lg")}
+                <span className="block text-center"><span className="font-display text-xl">{c.name}</span>{desc(c)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      );
+    case "cards":
+      return (
+        <ul className={cn("grid grid-cols-1 gap-6", COLS[opts.patternColumns])}>
+          {items.map((c) => (
+            <li key={c.id}>
+              <Link href={`/category/${c.slug}`} className="group relative block overflow-hidden rounded-lg">
+                {pic(c, "(min-width: 1024px) 33vw, 100vw")}
+                <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" aria-hidden />
+                <span className="absolute inset-x-0 bottom-0 p-5 text-white">
+                  <span className="font-display text-2xl">{c.name}</span>
+                  {opts.patternShowDescription && c.description && <span className="mt-1 block text-sm text-white/85">{c.description}</span>}
+                  <span className="mt-2 inline-block text-sm underline underline-offset-4">Shop {c.name.toLowerCase()} →</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      );
+    default:
+      return (
+        <ul className={cn("grid grid-cols-2 gap-4", COLS[opts.patternColumns])}>
+          {items.map((c) => (
+            <li key={c.id}>
+              <Link href={`/category/${c.slug}`} className={cn("group block overflow-hidden transition-shadow", opts.patternShape === "circle" ? "text-center" : "fx-panel rounded-lg border border-line bg-paper hover:shadow-float")}>
+                {pic(c, "(min-width: 1024px) 25vw, 50vw")}
+                <span className={cn("flex items-center gap-2 px-4 py-3", opts.patternShape === "circle" ? "justify-center" : "justify-between")}>
+                  <span><span className="font-display text-xl">{c.name}</span>{desc(c)}</span>
+                  {opts.patternShape !== "circle" && <span aria-hidden className="text-muted transition-transform group-hover:translate-x-1">→</span>}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      );
+  }
 }

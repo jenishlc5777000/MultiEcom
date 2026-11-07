@@ -154,8 +154,15 @@ const headerSchema = z.object({
   announcement: z.enum(["bar", "marquee", "hidden"]).default("bar"),
   /** "All categories" / Shop menu: open on click only, or also on hover. */
   menuTrigger: z.enum(["click", "hover"]).default("click"),
-  /** Subcategories in the menu: collapsed until the customer expands a category, or always shown. */
-  menuSubcategories: z.enum(["collapsed", "expanded"]).default("collapsed"),
+  /** Subcategories in the menu: collapsed until the customer expands a category, always shown, or never (top level only). */
+  menuSubcategories: z.enum(["collapsed", "expanded", "hidden"]).default("collapsed"),
+  /** Category menu design: mega panel with pictures, compact dropdown, columns, or a side drawer. */
+  menuStyle: z.enum(["mega", "dropdown", "columns", "drawer"]).default("mega"),
+  /** Category pictures in the mega menu / drawer. */
+  menuImages: z.boolean().default(true),
+  menuLabel: text(30, "All categories"),
+  /** "All categories →" link at the bottom of the menu. */
+  menuAllLink: z.boolean().default(true),
   /** The row of category links under the "Store search" header. */
   showCategoryBar: z.boolean().default(false),
 });
@@ -172,6 +179,13 @@ const logoSchema = z.object({
   textAfter: text(30, "Glaze"),
   image,
   height: int(20, 96, 36),
+  /** Browser tab icon (favicon) and phone app icon: initials tile, the logo picture, or a separate picture. */
+  faviconSource: z.enum(["generated", "logo", "upload"]).default("generated"),
+  favicon: image,
+  /** Square behind the icon: theme colour, white, or none. */
+  faviconBg: z.enum(["theme", "white", "transparent"]).default("theme"),
+  /** Space around the picture on the app icon (% of the size). */
+  faviconPadding: int(0, 30, 12),
 });
 
 const footerSchema = z.object({
@@ -197,6 +211,15 @@ const pagesSchema = z.object({
       showChips: z.boolean().default(true),
       showBreadcrumb: z.boolean().default(true),
       heroAlign: z.enum(["left", "center"]).default("left"),
+      /**
+       * "Choose a pattern first" categories (e.g. Mugs → Tapered / Round / Classic):
+       * how the patterns are shown before any products.
+       */
+      patternLayout: z.enum(["tiles", "cards", "pills", "list", "carousel"]).default("tiles"),
+      patternColumns: int(2, 5, 4),
+      patternShape: z.enum(["square", "portrait", "landscape", "circle"]).default("square"),
+      patternPrompt: text(160, "Choose a style to see the pieces."),
+      patternShowDescription: z.boolean().default(false),
     })
     .default({}),
   product: z
@@ -240,6 +263,27 @@ const contentSchema = z.object({
       useBanner: z.boolean().default(true),
       /** The numbers under the hero (ready to ship, glazes, categories). */
       showStats: z.boolean().default(false),
+      /** Hero pictures uploaded in Studio → Content → Hero. First = main picture; the rest feed collage / framed layouts. Empty = newest product photo. */
+      images: z.array(z.object({ url: z.string().max(500), publicId: z.string().max(300), alt: z.string().max(200).default("") })).max(6).default([]),
+      /**
+       * Where the hero picture comes from:
+       *  auto = uploaded pictures, else the newest product photo;
+       *  upload = only the pictures uploaded here;
+       *  products = product photos (newest, ready to ship, or the products chosen below).
+       */
+      imageSource: z.enum(["auto", "upload", "products"]).default("auto"),
+      productSource: z.enum(["newest", "ready", "chosen"]).default("newest"),
+      productIds: z.array(z.string().regex(/^[a-f0-9]{24}$/)).max(12).default([]),
+      productCount: int(2, 12, 5),
+      /** Change the picture by itself every few seconds (when there is more than one). */
+      rotate: z.boolean().default(false),
+      rotateSeconds: int(3, 20, 6),
+      /** cover = fill the frame (may crop); contain = show the whole picture. */
+      imageFit: z.enum(["cover", "contain"]).default("cover"),
+      /** The small product card on the picture: newest in-stock piece, a chosen product, or hidden. */
+      featured: z.enum(["auto", "product", "hide"]).default("auto"),
+      featuredProductId: z.union([z.string().regex(/^[a-f0-9]{24}$/), z.literal("")]).default(""),
+      featuredLabel: text(30, "Featured"),
     })
     .default({}),
   sections: z
@@ -342,6 +386,27 @@ const contactFormSchema = z.object({
 
 const productIds = z.array(z.string().regex(/^[a-f0-9]{24}$/)).max(48).default([]);
 
+/** Store pages where an offers / hot deals / most ordered list can also be shown. */
+export const MERCH_PAGES = ["home", "categories", "category", "product", "search", "cart", "favourites", "about", "contact"] as const;
+export type MerchPage = (typeof MERCH_PAGES)[number];
+export const merchPageLabels: Record<MerchPage, string> = {
+  home: "Home page",
+  categories: "All categories page",
+  category: "Category pages",
+  product: "Product pages",
+  search: "Search page",
+  cart: "Cart",
+  favourites: "Favourites page",
+  about: "About page",
+  contact: "Contact page",
+};
+/** Where the list sits on the chosen pages, and how many products it shows. */
+const placement = {
+  showOn: z.array(z.enum(MERCH_PAGES)).max(MERCH_PAGES.length).default([]),
+  position: z.enum(["top", "bottom"]).default("bottom"),
+  placeCount: int(2, 12, 4),
+};
+
 const shoppingSchema = z.object({
   favourites: z
     .object({
@@ -370,6 +435,7 @@ const shoppingSchema = z.object({
       /** Products the owner picked; with `includeDiscounted`, any product with a compare-at price joins too. */
       productIds,
       includeDiscounted: z.boolean().default(true),
+      ...placement,
     })
     .default({}),
   hotDeals: z
@@ -380,6 +446,7 @@ const shoppingSchema = z.object({
       productIds,
       /** Optional end time (ISO) shown as a countdown on the offers page. */
       endsAt: z.string().max(40).refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "Pick a valid date").default(""),
+      ...placement,
     })
     .default({}),
   bestsellers: z
@@ -391,6 +458,7 @@ const shoppingSchema = z.object({
       mode: z.enum(["auto", "manual"]).default("auto"),
       productIds,
       count: int(2, 24, 8),
+      ...placement,
     })
     .default({}),
   /** The /offers page that collects offers, hot deals and most ordered. */
@@ -403,6 +471,24 @@ const shoppingSchema = z.object({
     .default({}),
 });
 export type ShoppingConfig = z.infer<typeof shoppingSchema>;
+
+/* ───────────── Blog (Admin → Blog → Blog settings) ───────────── */
+
+const blogSchema = z.object({
+  enabled: z.boolean().default(true),
+  title: text(60, "Journal"),
+  intro: text(300, "Notes from the studio: how pieces are made, glaze stories and care tips."),
+  /** Link in the footer (and optionally the header menu). */
+  showInFooter: z.boolean().default(true),
+  footerLabel: text(40, "Blog"),
+  showInNav: z.boolean().default(false),
+  perPage: int(3, 24, 9),
+  layout: z.enum(["grid", "list"]).default("grid"),
+  showAuthor: z.boolean().default(true),
+  showDate: z.boolean().default(true),
+  showReadingTime: z.boolean().default(true),
+});
+export type BlogConfig = z.infer<typeof blogSchema>;
 
 /* ───────────── Visibility of pages and site parts (Studio → Visibility) ───────────── */
 
@@ -437,6 +523,8 @@ export const siteConfigSchema = z.object({
   search: searchSchema.default({}),
   /** Studio → Sections: the home-page builder. */
   builder: builderSchema.default({}),
+  /** Admin → Blog → settings: /blog page, footer / menu link. */
+  blog: blogSchema.default({}),
   /** Studio → Shopping: favourites, recently viewed, offers, hot deals, most ordered. */
   shopping: shoppingSchema.default({}),
   /** Studio → Visibility: turn pages, header, footer and other parts on or off. */

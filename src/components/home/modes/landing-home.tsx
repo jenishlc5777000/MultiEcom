@@ -34,7 +34,7 @@ export function LandingHome(d: HomeData) {
   return (
     <div className="space-y-24 md:space-y-36">
       <div>
-        <Hero layout={layout.hero} banner={d.banner} image={d.heroImage} gallery={d.gallery} featured={d.featured} stats={d.stats} content={d.site.content.hero} search={{ placeholder: d.site.search.placeholder, instant: d.site.search.instant, popular: d.site.search.popular }} />
+        <Hero layout={layout.hero} banner={d.banner} image={d.heroImage} gallery={d.gallery} featured={d.featured} featuredLabel={d.site.content.hero.featuredLabel} slides={d.heroSlides} stats={d.stats} content={d.site.content.hero} search={{ placeholder: d.site.search.placeholder, instant: d.site.search.instant, popular: d.site.search.popular }} />
         {on.marquee && d.tickerItems.length > 0 && <div data-studio="marquee"><Marquee items={d.tickerItems} className="mt-10 border-y border-line py-6 md:mt-0 md:py-8" /></div>}
       </div>
 

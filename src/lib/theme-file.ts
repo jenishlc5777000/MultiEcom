@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { themeIds } from "@/config/themes";
+import { orderFlowSchema } from "./order-flow";
 import { siteConfigSchema, type SiteConfig } from "./site-config";
 
 /**
@@ -17,7 +18,7 @@ export type ExportScope = (typeof EXPORT_SCOPES)[number];
 
 export const IMPORT_PARTS = [
   "theme", "design", "cards", "header", "logo", "footer", "pages",
-  "search", "builder", "content", "contactForm", "shopping", "visibility", "perTheme", "store",
+  "search", "builder", "content", "contactForm", "shopping", "visibility", "blog", "perTheme", "store",
 ] as const;
 export type ImportPart = (typeof IMPORT_PARTS)[number];
 
@@ -43,8 +44,9 @@ export const importPartLabels: Record<ImportPart, string> = {
   contactForm: "Contact form & email templates",
   shopping: "Favourites, offers, hot deals, most ordered",
   visibility: "Pages & site parts on/off",
+  blog: "Blog settings (posts are not included)",
   perTheme: "Every theme's own customisations",
-  store: "Store settings (shipping, returns, contact, announcement)",
+  store: "Store settings (shipping, returns, contact, announcement, order steps)",
 };
 
 /** Store settings that travel in a full export (money in paise, as stored). */
@@ -57,6 +59,8 @@ export const storeSettingsSchema = z.object({
   contactEmail: z.union([z.string().trim().email(), z.literal("")]).default(""),
   contactPhone: z.string().trim().max(20).default(""),
   instagram: z.union([z.string().trim().url(), z.literal("")]).default(""),
+  /** Orders → Order steps (approval, step names, couriers, shipping steps). */
+  orderFlow: orderFlowSchema.optional(),
 });
 export type StoreSettings = z.infer<typeof storeSettingsSchema>;
 

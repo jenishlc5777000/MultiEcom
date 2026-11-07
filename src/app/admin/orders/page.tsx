@@ -29,7 +29,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <PageHeader title="Orders" description={`${total} order${total === 1 ? "" : "s"}${status ? ` · ${ORDER_STATUS_LABEL[status as keyof typeof ORDER_STATUS_LABEL] ?? "all statuses"}` : ""}`} />
+      <PageHeader title="Orders" actions={<Link href="/admin/orders/flow" className="inline-flex h-9 items-center rounded-pill border border-line px-4 text-sm hover:bg-surface">Order steps &amp; auto-approve</Link>} description={`${total} order${total === 1 ? "" : "s"}${status ? ` · ${ORDER_STATUS_LABEL[status as keyof typeof ORDER_STATUS_LABEL] ?? "all statuses"}` : ""}`} />
       <Tabs items={tabs} current={status} />
       <FilterBar>
         {status && <input type="hidden" name="status" value={status} />}

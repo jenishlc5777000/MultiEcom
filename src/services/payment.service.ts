@@ -5,6 +5,8 @@ import { sendOrderConfirmationEmail } from "@/lib/email";
 import { Order, Payment } from "@/models";
 import { clearCartForUser } from "./cart.service";
 import { cancelUnpaidOrder } from "./order.service";
+import { canAutoApprove } from "@/lib/order-flow";
+import { getOrderFlow } from "./order-flow.service";
 
 type OrderForPayment = { _id: unknown; orderNumber: string; total: number; user: unknown };
 
@@ -77,8 +79,10 @@ export async function markPaymentCaptured(input: {
     await Order.updateOne({ _id: order._id }, { $set: { notes: "Paid after stock was released: confirm availability" } });
   }
 
+  const { autoApproved, flow } = await autoApproveIfAllowed(order);
+
   await clearCartForUser(String(order.user));
-  sendOrderConfirmationEmail(order.email, order).catch((e) => console.error("[email] order confirmation", e));
+  sendOrderConfirmationEmail(order.email, order, autoApproved ? flow.steps.CONFIRMED.message : flow.steps.AWAITING_APPROVAL.message).catch((e) => console.error("[email] order confirmation", e));
   return { alreadyProcessed: false, orderId: String(order._id) };
 }
 
@@ -107,4 +111,21 @@ export async function handlePaymentEvent(event: PaymentEvent) {
     default:
       return;
   }
+}
+
+/** Orders → Order steps → Automatic approval: a just-paid order skips the owner's approval when allowed (e.g. every item in stock). */
+export async function autoApproveIfAllowed(order: Parameters<typeof canAutoApprove>[1] & { _id: unknown }) {
+  const flow = await getOrderFlow();
+  const autoApproved = canAutoApprove(flow, order);
+  if (autoApproved) {
+    const why = flow.autoApprove.mode === "in_stock" ? "Approved automatically (all items in stock)" : "Approved automatically";
+    await Order.updateOne(
+      { _id: order._id, status: "AWAITING_APPROVAL" },
+      {
+        $set: { status: "CONFIRMED", approval: { decision: "APPROVED", reason: why, decidedAt: new Date() } },
+        $push: { timeline: { status: "CONFIRMED", note: why, by: "system" } },
+      },
+    );
+  }
+  return { autoApproved, flow };
 }

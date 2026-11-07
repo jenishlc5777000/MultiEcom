@@ -297,3 +297,18 @@ html[data-chrome="numbered"] .bg-accent .section-eyebrow::before { color: rgb(va
 html[data-favs="off"] .fav-ui { display: none !important; }
 html[data-cards="listing"] .product-card-arrow { right: 3.4rem; }
 html[data-fav-cards="off"] .product-card-fav { display: none !important; }
+
+/* Admin sidebar collapsed to icons (toggle at the bottom of the sidebar; desktop only). */
+@media (min-width: 1024px) {
+  html[data-admin-sb="collapsed"] .admin-shell { --admin-sb: 64px; }
+  html[data-admin-sb="collapsed"] .admin-sb-hide { display: none; }
+  html[data-admin-sb="collapsed"] .admin-sb-dot { display: block; }
+  html[data-admin-sb="collapsed"] .admin-shell aside { padding-left: 0.5rem; padding-right: 0.5rem; }
+  html[data-admin-sb="collapsed"] .admin-shell aside nav a,
+  html[data-admin-sb="collapsed"] .admin-shell aside button,
+  html[data-admin-sb="collapsed"] .admin-shell aside a { justify-content: center; }
+}
+@media (min-width: 1024px) {
+  /* Collapsed: the top row holds only the expand button, centred. */
+  html[data-admin-sb="collapsed"] .admin-shell aside > div:first-child { justify-content: center; }
+}

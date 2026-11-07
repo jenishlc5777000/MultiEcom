@@ -13,6 +13,7 @@ export async function SiteHeader({ cartCount }: { cartCount: number }) {
   const nav = [
     ...mainNav.filter((l) => (l.href === "/about" ? pages.about : l.href.startsWith("/policies/") ? pages.policies : true)),
     ...(sh.offersPage.enabled && sh.offersPage.showInNav ? [{ href: "/offers", label: sh.offersPage.title }] : []),
+    ...(site.blog.enabled && site.blog.showInNav ? [{ href: "/blog", label: site.blog.footerLabel || site.blog.title }] : []),
   ];
   const policies = pages.policies ? policyPages.map((p) => ({ href: `/policies/${p.slug}`, label: p.label })) : [];
   return (

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button, ButtonArrow } from "@/components/ui/button";
 import { SearchBox, type SearchBoxConfig } from "@/components/search/search-box";
+import { HeroSlides } from "./hero-slides";
 import type { HeroLayout } from "@/config/themes";
 import { defaultSiteConfig, titleLines, type SiteConfig } from "@/lib/site-config";
 import { cn, formatINR } from "@/lib/utils";
@@ -15,10 +16,14 @@ type Props = {
   image?: ImageDTO;
   featured?: ProductCardDTO;
   stats: Stat[];
-  /** Layout picked by the active theme (Admin → Settings → Theme). */
+  /** Layout picked by the active theme (Admin → Studio → Theme). */
   layout?: HeroLayout;
   /** Extra photos for the collage layout. */
   gallery?: ImageDTO[];
+  /** Label on the featured card (Studio → Content → Hero). */
+  featuredLabel?: string;
+  /** Pictures to cycle through (Studio → Content → Hero → change automatically). */
+  slides?: ImageDTO[];
   /** Search settings for the "search" hero. */
   search?: SearchBoxConfig;
   /** Hero text from Admin → Studio → Content (a homepage banner still wins). */
@@ -56,7 +61,7 @@ export function Hero({ layout = "split", ...props }: Props) {
 
 /* ───────────── Shared pieces ───────────── */
 
-function useHeroContent({ banner, image, content = DEFAULTS }: Omit<Props, "layout">) {
+function useHeroContent({ banner, image, slides, content = DEFAULTS }: Omit<Props, "layout">) {
   return {
     eyebrow: content.eyebrow,
     lines: titleLines(banner?.title || content.title),
@@ -65,7 +70,10 @@ function useHeroContent({ banner, image, content = DEFAULTS }: Omit<Props, "layo
     ctaLabel: banner?.ctaLabel || content.ctaLabel,
     secondaryHref: content.secondaryHref,
     secondaryLabel: content.secondaryLabel,
-    heroImage: banner?.image ?? image,
+    // The home page already picks Studio picture → banner picture → product photo.
+    heroImage: image ?? banner?.image,
+    fit: content.imageFit,
+    slides: slides && slides.length > 1 ? { images: slides, seconds: content.rotateSeconds } : undefined,
     // Double-click to edit in the Studio preview (only text that comes from Studio, not a banner).
     eyebrowEdit: { "data-edit": "content:hero.eyebrow", "data-edit-raw": content.eyebrow },
     subEdit: banner?.subtitle ? {} : { "data-edit": "content:hero.subtitle", "data-edit-raw": content.subtitle },
@@ -125,14 +133,16 @@ function Stats({ stats, className, onPhoto = false }: { stats: Stat[]; className
   );
 }
 
-function HeroImage({ image, className, sizes, children }: { image?: ImageDTO; className?: string; sizes: string; children?: React.ReactNode }) {
+function HeroImage({ image, className, sizes, children, fit = "cover", slides }: { image?: ImageDTO; className?: string; sizes: string; children?: React.ReactNode; fit?: "cover" | "contain"; slides?: { images: ImageDTO[]; seconds: number } }) {
   return (
     <div className={cn("fx-photo overflow-hidden bg-surface-strong", className)}>
-      {image ? (
-        <Image src={image.url} alt={image.alt} fill priority sizes={sizes} className="animate-zoom-out object-cover [animation-delay:200ms]" />
+      {slides ? (
+        <HeroSlides images={slides.images} seconds={slides.seconds} sizes={sizes} fit={fit} />
+      ) : image ? (
+        <Image src={image.url} alt={image.alt} fill priority sizes={sizes} className={cn("animate-zoom-out [animation-delay:200ms]", fit === "contain" ? "object-contain p-4" : "object-cover")} />
       ) : (
         <div className="flex h-full items-center justify-center p-10 text-center text-muted">
-          Add a homepage banner image in the dashboard, or product photos, to fill this space.
+          Upload a hero picture in Admin → Studio → Content → Hero, or add product photos, to fill this space.
         </div>
       )}
       {children}
@@ -140,7 +150,7 @@ function HeroImage({ image, className, sizes, children }: { image?: ImageDTO; cl
   );
 }
 
-function FeaturedCard({ featured, className }: { featured?: ProductCardDTO; className?: string }) {
+function FeaturedCard({ featured, className, label = "Featured" }: { featured?: ProductCardDTO; className?: string; label?: string }) {
   if (!featured) return null;
   return (
     <Link href={`/products/${featured.slug}`} className={cn("group animate-fade-up [animation-delay:1250ms]", className)}>
@@ -149,7 +159,7 @@ function FeaturedCard({ featured, className }: { featured?: ProductCardDTO; clas
           {featured.image && <Image src={featured.image.url} alt="" fill sizes="64px" className="object-cover transition-transform duration-700 group-hover:scale-110" />}
         </div>
         <div className="min-w-0">
-          <p className="text-eyebrow uppercase text-accent">Featured</p>
+          <p className="text-eyebrow uppercase text-accent">{label}</p>
           <p className="truncate font-medium">{featured.name}</p>
           <p className="text-sm text-muted">From {formatINR(featured.priceFrom)}</p>
         </div>
@@ -199,11 +209,11 @@ function SplitHero(props: Omit<Props, "layout">) {
         </div>
 
         <div className="relative h-[68svh] max-h-[640px] min-h-[420px] lg:col-span-6 lg:h-[80svh] lg:max-h-[760px]">
-          <HeroImage image={c.heroImage} sizes="(min-width: 1024px) 50vw, 100vw" className="absolute inset-0 animate-clip-up rounded-lg lg:left-[8%] [animation-delay:200ms]">
+          <HeroImage image={c.heroImage} fit={c.fit} slides={c.slides} sizes="(min-width: 1024px) 50vw, 100vw" className="absolute inset-0 animate-clip-up rounded-lg lg:left-[8%] [animation-delay:200ms]">
             <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" />
           </HeroImage>
           <RotatingBadge className="-top-4 right-4 lg:-right-4" />
-          <FeaturedCard featured={props.featured} className="absolute -bottom-6 left-4 right-4 sm:right-auto sm:w-80 lg:-left-2" />
+          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="absolute -bottom-6 left-4 right-4 sm:right-auto sm:w-80 lg:-left-2" />
         </div>
       </div>
     </section>
@@ -227,11 +237,11 @@ function CenteredHero(props: Omit<Props, "layout">) {
       <div className="container relative mt-14 md:mt-20">
         <div className="relative">
           <HeroImage
-            image={c.heroImage}
+            image={c.heroImage} fit={c.fit} slides={c.slides}
             sizes="100vw"
             className="relative aspect-[4/5] animate-clip-up rounded-lg sm:aspect-[16/9] lg:aspect-[21/9] [animation-delay:300ms]"
           />
-          <FeaturedCard featured={props.featured} className="absolute -bottom-6 left-4 right-4 sm:left-8 sm:right-auto sm:w-80" />
+          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="absolute -bottom-6 left-4 right-4 sm:left-8 sm:right-auto sm:w-80" />
         </div>
         <Stats stats={props.stats} className="mx-auto mt-16 max-w-xl justify-center border-t-0 pt-0 text-center" />
       </div>
@@ -245,7 +255,7 @@ function FullBleedHero(props: Omit<Props, "layout">) {
   const c = useHeroContent(props);
   return (
     <section data-studio="hero" className="hero-root on-photo relative flex min-h-[min(calc(100svh-var(--header-h)),900px)] items-end overflow-hidden text-white">
-      <HeroImage image={c.heroImage} sizes="100vw" className="absolute inset-0">
+      <HeroImage image={c.heroImage} fit={c.fit} slides={c.slides} sizes="100vw" className="absolute inset-0">
         {/* Fixed dark wash: the copy sits on a photo, whatever the theme colours are */}
         <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />
       </HeroImage>
@@ -259,7 +269,7 @@ function FullBleedHero(props: Omit<Props, "layout">) {
         </div>
         <div className="space-y-8 lg:col-span-4 lg:justify-self-end">
           <Stats stats={props.stats} onPhoto />
-          <FeaturedCard featured={props.featured} className="block sm:w-80" />
+          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="block sm:w-80" />
         </div>
       </div>
     </section>
@@ -274,7 +284,7 @@ function EditorialHero(props: Omit<Props, "layout">) {
     <section data-studio="hero" className="hero-root border-b border-line">
       <div className="container grid gap-0 lg:min-h-[min(calc(100svh-var(--header-h)),820px)] lg:grid-cols-2">
         <HeroImage
-          image={c.heroImage}
+          image={c.heroImage} fit={c.fit} slides={c.slides}
           sizes="(min-width: 1024px) 50vw, 100vw"
           className="relative aspect-square animate-clip-up border border-line lg:aspect-auto [animation-delay:150ms]"
         />
@@ -290,7 +300,7 @@ function EditorialHero(props: Omit<Props, "layout">) {
           </div>
           <div className="grid grid-cols-1 border-t border-line sm:grid-cols-[1fr_auto]">
             <Stats stats={props.stats} className="border-t-0 px-6 py-6" />
-            <FeaturedCard featured={props.featured} className="block p-4 sm:w-80" />
+            <FeaturedCard featured={props.featured} label={props.featuredLabel} className="block p-4 sm:w-80" />
           </div>
         </div>
       </div>
@@ -316,7 +326,7 @@ function MinimalHero(props: Omit<Props, "layout">) {
       </div>
       <div className="mt-14 flex flex-wrap items-end justify-between gap-8 border-t border-line pt-8">
         <Stats stats={props.stats} className="border-t-0 pt-0" />
-        <FeaturedCard featured={props.featured} className="block w-full sm:w-80" />
+        <FeaturedCard featured={props.featured} label={props.featuredLabel} className="block w-full sm:w-80" />
       </div>
     </section>
   );
@@ -340,11 +350,11 @@ function CollageHero(props: Omit<Props, "layout">) {
         </div>
 
         <div className="relative h-[520px] sm:h-[600px] lg:col-span-7">
-          <HeroImage image={c.heroImage} sizes="(min-width: 1024px) 35vw, 70vw" className="absolute left-0 top-0 h-[78%] w-[58%] animate-clip-up rounded-lg shadow-float [animation-delay:150ms]" />
+          <HeroImage image={c.heroImage} fit={c.fit} slides={c.slides} sizes="(min-width: 1024px) 35vw, 70vw" className="absolute left-0 top-0 h-[78%] w-[58%] animate-clip-up rounded-lg shadow-float [animation-delay:150ms]" />
           <HeroImage image={second} sizes="(min-width: 1024px) 25vw, 50vw" className="absolute right-0 top-[8%] h-[46%] w-[38%] animate-clip-up rounded-lg shadow-float [animation-delay:350ms]" />
           <HeroImage image={third} sizes="(min-width: 1024px) 28vw, 55vw" className="absolute bottom-0 right-[8%] h-[40%] w-[48%] animate-clip-up rounded-lg shadow-float [animation-delay:550ms]" />
           <RotatingBadge className="bottom-[34%] left-[46%] z-10" />
-          <FeaturedCard featured={props.featured} className="absolute -bottom-4 left-0 z-10 w-[min(20rem,90%)]" />
+          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="absolute -bottom-4 left-0 z-10 w-[min(20rem,90%)]" />
         </div>
       </div>
     </section>
@@ -371,7 +381,7 @@ function FramedHero(props: Omit<Props, "layout">) {
         <div className="relative h-[480px] sm:h-[560px] lg:col-span-6">
           {/* offset frames behind the photos */}
           <span aria-hidden className="absolute right-0 top-0 h-[70%] w-[68%] translate-x-3 translate-y-3 bg-accent/15" />
-          <HeroImage image={c.heroImage} sizes="(min-width: 1024px) 34vw, 70vw" className="absolute right-0 top-0 h-[70%] w-[68%] animate-clip-up [animation-delay:150ms]" />
+          <HeroImage image={c.heroImage} fit={c.fit} slides={c.slides} sizes="(min-width: 1024px) 34vw, 70vw" className="absolute right-0 top-0 h-[70%] w-[68%] animate-clip-up [animation-delay:150ms]" />
           <span aria-hidden className="absolute bottom-[6%] left-0 h-[52%] w-[42%] -translate-x-3 translate-y-3 bg-ink/10" />
           <HeroImage image={second} sizes="(min-width: 1024px) 22vw, 45vw" className="absolute bottom-[6%] left-0 h-[52%] w-[42%] animate-clip-up border-4 border-canvas [animation-delay:350ms]" />
           {/* round sticker */}
@@ -399,7 +409,7 @@ function SearchHero(props: Omit<Props, "layout">) {
   const search = props.search ?? { placeholder: "Search the shop", instant: true, popular: [] };
   return (
     <section data-studio="hero" className="hero-root on-photo relative overflow-hidden text-white">
-      <HeroImage image={c.heroImage} sizes="100vw" className="absolute inset-0">
+      <HeroImage image={c.heroImage} fit={c.fit} slides={c.slides} sizes="100vw" className="absolute inset-0">
         <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-accent/55 via-black/45 to-black/70" />
       </HeroImage>
       <div className="container relative flex min-h-[560px] flex-col items-center justify-center gap-6 py-20 text-center md:min-h-[640px]">

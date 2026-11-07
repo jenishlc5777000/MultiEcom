@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { SidebarToggle } from "@/components/admin/sidebar-toggle";
 import { Logo } from "@/components/layout/logo";
 import { requireOwner } from "@/lib/auth/guards";
 import { getPendingCounts } from "@/services/admin/approvals.service";
@@ -14,11 +15,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const [pending, site] = await Promise.all([getPendingCounts(), getSiteConfig()]);
 
   return (
-    <div className="min-h-dvh bg-canvas lg:grid lg:grid-cols-[248px_1fr]">
-      <aside className="sticky top-0 z-30 border-b border-line bg-surface/80 px-4 pb-3 pt-3 backdrop-blur lg:flex lg:h-dvh lg:flex-col lg:gap-6 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
+    <div className="admin-shell min-h-dvh bg-canvas lg:grid lg:grid-cols-[var(--admin-sb,208px)_1fr] lg:transition-[grid-template-columns] lg:duration-300">
+      {/* Restore the collapsed sidebar before paint (choice saved in this browser). */}
+      <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem("admin-sidebar")==="collapsed")document.documentElement.dataset.adminSb="collapsed"}catch(e){}` }} />
+      <aside className="sticky top-0 z-30 border-b border-line bg-surface/80 px-4 pb-3 pt-3 backdrop-blur lg:flex lg:h-dvh lg:flex-col lg:gap-5 lg:border-b-0 lg:border-r lg:px-3 lg:py-5">
         <div className="mb-2 flex items-center justify-between lg:mb-0">
-          <Logo brand={site.logo} />
-          <span className="rounded-pill bg-ink px-2.5 py-0.5 text-xs text-canvas">Admin</span>
+          <span className="admin-sb-hide"><Logo brand={site.logo} /></span>
+          <span className="flex items-center gap-2">
+            <span className="admin-sb-hide rounded-pill bg-ink px-2.5 py-0.5 text-xs text-canvas">Admin</span>
+            <SidebarToggle place="top" />
+          </span>
         </div>
         <AdminNav pending={pending.total} ownerName={owner.name ?? owner.email ?? "Owner"} />
       </aside>

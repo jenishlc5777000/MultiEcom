@@ -53,6 +53,8 @@ const orderSchema = new Schema(
       trackingUrl: String,
       dispatchedAt: Date,
       deliveredAt: Date,
+      /** Courier stages marked after dispatch (Admin → Orders → Order steps). */
+      stages: [{ id: String, label: String, note: String, at: { type: Date, default: Date.now }, _id: false }],
     },
     stockReleased: { type: Boolean, default: false }, // set once reserved stock is put back
     notes: String,
@@ -74,6 +76,8 @@ const orderSchema = new Schema(
     timeline: [
       {
         status: { type: String, enum: ORDER_STATUS },
+        /** Display name when it isn't the status itself (e.g. a courier stage). */
+        label: String,
         note: String,
         by: { type: String, enum: ["system", "customer", "owner"], default: "system" },
         internal: { type: Boolean, default: false }, // owner-only notes, never shown to customers

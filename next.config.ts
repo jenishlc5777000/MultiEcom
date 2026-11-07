@@ -1,8 +1,25 @@
 import type { NextConfig } from "next";
 
+/**
+ * Image hosts the storefront may show (Admin → Integrations → Image storage).
+ * A custom CDN / domain for a bucket goes in IMAGE_HOSTS (comma-separated), then redeploy.
+ */
+const IMAGE_HOSTS = [
+  "res.cloudinary.com",
+  "**.amazonaws.com", // Amazon S3 and CloudFront (*.cloudfront.net below)
+  "**.cloudfront.net",
+  "**.r2.dev", // Cloudflare R2 public bucket URLs
+  "**.r2.cloudflarestorage.com",
+  "**.digitaloceanspaces.com",
+  "**.wasabisys.com",
+  "**.backblazeb2.com",
+  "**.public.blob.vercel-storage.com", // Vercel Blob
+  ...(process.env.IMAGE_HOSTS ?? "").split(",").map((h) => h.trim()).filter(Boolean),
+];
+
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
+    remotePatterns: IMAGE_HOSTS.map((hostname) => ({ protocol: "https" as const, hostname })),
     // Allows the local demo SVGs in /public/demo; served sandboxed with scripts disabled.
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",

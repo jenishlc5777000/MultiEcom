@@ -16,6 +16,25 @@ export type SmsProvider = (typeof SMS_PROVIDERS)[number];
 /** How customers sign in: emailed code, Google, or both. */
 export const LOGIN_METHODS = ["both", "email", "google"] as const;
 export type LoginMethod = (typeof LOGIN_METHODS)[number];
+/** Where uploaded images are stored. "auto" = the first one with keys (local folder in development). */
+export const STORAGE_PROVIDERS = ["auto", "cloudinary", "s3", "vercel_blob"] as const;
+export type StorageProvider = (typeof STORAGE_PROVIDERS)[number];
+
+export type StorageSettings = {
+  provider: StorageProvider;
+  cloudName: string;
+  cloudKey: string;
+  cloudSecret: string;
+  /** S3 and S3-compatible (Cloudflare R2, DigitalOcean Spaces, Wasabi, Backblaze B2, MinIO). Empty endpoint = Amazon S3. */
+  s3Endpoint: string;
+  s3Region: string;
+  s3Bucket: string;
+  s3KeyId: string;
+  s3Secret: string;
+  /** Public address of the bucket (CDN / custom domain / r2.dev). Empty = the bucket's own address. */
+  s3PublicUrl: string;
+  blobToken: string;
+};
 
 export type Integrations = {
   razorpay: { keyId: string; keySecret: string; webhookSecret: string };
@@ -23,10 +42,11 @@ export type Integrations = {
   sms: { provider: SmsProvider; apiKey: string; accountSid: string; senderId: string; templateId: string; orderUpdates: boolean };
   google: { clientId: string; clientSecret: string };
   login: { methods: LoginMethod };
+  storage: StorageSettings;
 };
 
 /** Field names that are encrypted at rest and write-only in the dashboard. */
-export const SECRET_FIELDS = ["razorpay.keySecret", "razorpay.webhookSecret", "email.apiKey", "sms.apiKey", "google.clientSecret"] as const;
+export const SECRET_FIELDS = ["razorpay.keySecret", "razorpay.webhookSecret", "email.apiKey", "sms.apiKey", "google.clientSecret", "storage.cloudSecret", "storage.s3Secret", "storage.blobToken"] as const;
 export type SecretField = (typeof SECRET_FIELDS)[number];
 
 type Stored = {
@@ -35,6 +55,7 @@ type Stored = {
   sms?: { provider?: SmsProvider; apiKey?: string; accountSid?: string; senderId?: string; templateId?: string; orderUpdates?: boolean };
   google?: { clientId?: string; clientSecret?: string };
   login?: { methods?: LoginMethod };
+  storage?: Partial<Record<keyof StorageSettings, string>>;
 };
 
 let cache: { at: number; value: Integrations } | null = null;
@@ -74,6 +95,20 @@ export async function getIntegrations(): Promise<Integrations> {
       clientSecret: decryptSecret(s.google?.clientSecret) || e.AUTH_GOOGLE_SECRET || "",
     },
     login: { methods: (LOGIN_METHODS as readonly string[]).includes(s.login?.methods ?? "") ? s.login!.methods! : "both" },
+    storage: {
+      provider: (STORAGE_PROVIDERS as readonly string[]).includes(s.storage?.provider ?? "") ? (s.storage!.provider as StorageProvider) : "auto",
+      cloudName: s.storage?.cloudName || e.CLOUDINARY_CLOUD_NAME || "",
+      cloudKey: s.storage?.cloudKey || e.CLOUDINARY_API_KEY || "",
+      cloudSecret: decryptSecret(s.storage?.cloudSecret) || e.CLOUDINARY_API_SECRET || "",
+      s3Endpoint: s.storage?.s3Endpoint ?? "",
+      s3Region: s.storage?.s3Region || "auto",
+      s3Bucket: s.storage?.s3Bucket ?? "",
+      s3KeyId: s.storage?.s3KeyId ?? "",
+      s3Secret: decryptSecret(s.storage?.s3Secret),
+      s3PublicUrl: s.storage?.s3PublicUrl ?? "",
+      // Set automatically by Vercel when a Blob store is connected to the project.
+      blobToken: decryptSecret(s.storage?.blobToken) || process.env.BLOB_READ_WRITE_TOKEN || "",
+    },
   };
   cache = { at: Date.now(), value };
   return value;
@@ -119,6 +154,20 @@ export async function getIntegrationsForAdmin() {
       redirectUrl: `${e.NEXT_PUBLIC_APP_URL}/api/auth/callback/google`,
     },
     login: { methods: (s.login?.methods ?? "both") as LoginMethod },
+    storage: {
+      provider: (s.storage?.provider ?? "auto") as StorageProvider,
+      cloudName: s.storage?.cloudName ?? "",
+      cloudKey: s.storage?.cloudKey ?? "",
+      cloudFromEnv: !s.storage?.cloudName && Boolean(e.CLOUDINARY_CLOUD_NAME),
+      cloudSecret: secret(s.storage?.cloudSecret, e.CLOUDINARY_API_SECRET),
+      s3Endpoint: s.storage?.s3Endpoint ?? "",
+      s3Region: s.storage?.s3Region ?? "",
+      s3Bucket: s.storage?.s3Bucket ?? "",
+      s3KeyId: s.storage?.s3KeyId ?? "",
+      s3Secret: secret(s.storage?.s3Secret),
+      s3PublicUrl: s.storage?.s3PublicUrl ?? "",
+      blobToken: secret(s.storage?.blobToken, process.env.BLOB_READ_WRITE_TOKEN),
+    },
   };
 }
 export type IntegrationsAdminView = Awaited<ReturnType<typeof getIntegrationsForAdmin>>;
@@ -129,6 +178,7 @@ export type IntegrationsSave = {
   sms: { provider: SmsProvider; accountSid: string; senderId: string; templateId: string; orderUpdates: boolean; apiKey?: string };
   google: { clientId: string; clientSecret?: string };
   login: { methods: LoginMethod };
+  storage: Omit<StorageSettings, "cloudSecret" | "s3Secret" | "blobToken"> & { cloudSecret?: string; s3Secret?: string; blobToken?: string };
   /** Secrets to remove. A secret left blank is kept as it is. */
   clear: SecretField[];
 };
@@ -145,6 +195,14 @@ export async function saveIntegrations(input: IntegrationsSave) {
     "integrations.sms.orderUpdates": input.sms.orderUpdates,
     "integrations.google.clientId": input.google.clientId,
     "integrations.login.methods": input.login.methods,
+    "integrations.storage.provider": input.storage.provider,
+    "integrations.storage.cloudName": input.storage.cloudName,
+    "integrations.storage.cloudKey": input.storage.cloudKey,
+    "integrations.storage.s3Endpoint": input.storage.s3Endpoint,
+    "integrations.storage.s3Region": input.storage.s3Region,
+    "integrations.storage.s3Bucket": input.storage.s3Bucket,
+    "integrations.storage.s3KeyId": input.storage.s3KeyId,
+    "integrations.storage.s3PublicUrl": input.storage.s3PublicUrl,
   };
   const $unset: Record<string, 1> = {};
   const secrets: Record<SecretField, string | undefined> = {
@@ -153,6 +211,9 @@ export async function saveIntegrations(input: IntegrationsSave) {
     "email.apiKey": input.email.apiKey,
     "sms.apiKey": input.sms.apiKey,
     "google.clientSecret": input.google.clientSecret,
+    "storage.cloudSecret": input.storage.cloudSecret,
+    "storage.s3Secret": input.storage.s3Secret,
+    "storage.blobToken": input.storage.blobToken,
   };
   for (const field of SECRET_FIELDS) {
     if (input.clear.includes(field)) $unset[`integrations.${field}`] = 1;

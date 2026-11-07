@@ -85,7 +85,7 @@ async function renderSection(s: Section, d: HomeData): Promise<React.ReactNode> 
   switch (s.type) {
     /* ── Built-in blocks ── */
     case "hero":
-      return <Hero layout={layout.hero} banner={d.banner} image={d.heroImage} gallery={d.gallery} featured={d.featured} stats={d.stats} content={d.site.content.hero} search={{ placeholder: d.site.search.placeholder, instant: d.site.search.instant, popular: d.site.search.popular }} />;
+      return <Hero layout={layout.hero} banner={d.banner} image={d.heroImage} gallery={d.gallery} featured={d.featured} featuredLabel={d.site.content.hero.featuredLabel} slides={d.heroSlides} stats={d.stats} content={d.site.content.hero} search={{ placeholder: d.site.search.placeholder, instant: d.site.search.instant, popular: d.site.search.popular }} />;
     case "marquee":
       return d.tickerItems.length ? <Marquee items={d.tickerItems} className="border-y border-line py-6 md:py-8" /> : null;
     case "categories":

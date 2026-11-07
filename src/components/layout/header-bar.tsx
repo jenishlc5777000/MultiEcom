@@ -72,6 +72,10 @@ export function HeaderBar({
   // Client: menus open on click (not hover) and subcategories start collapsed (Studio → Header).
   const hoverOpen = header.menuTrigger === "hover";
   const collapsed = header.menuSubcategories === "collapsed";
+  const hideSubs = header.menuSubcategories === "hidden";
+  const menuStyle = header.menuStyle;
+  /** Whether a category's subcategories are shown right now. */
+  const showSubs = (key: string, n: number) => n > 0 && !hideSubs && (!collapsed || expanded.has(key));
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) =>
     setExpanded((s) => {
@@ -133,6 +137,54 @@ export function HeaderBar({
 
   const solid = scrolled || megaOpen || mobileOpen;
   const featured = categories.slice(0, 4);
+
+  /** Category list with expand buttons, shared by the mega menu, dropdown and drawer. */
+  function categoryList(kind: "mega" | "dropdown" | "drawer") {
+    const big = kind === "mega" ? "font-display text-2xl" : kind === "drawer" ? "font-display text-xl" : "text-[15px] font-medium";
+    return (
+      <ul className={kind === "dropdown" ? "space-y-1" : "space-y-2"}>
+        {categories.map((c) => (
+          <li key={c.id}>
+            <span className="flex items-center justify-between gap-2">
+              <Link href={`/category/${c.slug}`} className={cn("link-underline", big)} tabIndex={megaOpen ? 0 : -1}>
+                {c.name}
+              </Link>
+              {collapsed && c.children.length > 0 && (
+                <button
+                  type="button"
+                  aria-expanded={expanded.has(c.id)}
+                  aria-label={`${expanded.has(c.id) ? "Hide" : "Show"} ${c.name} subcategories`}
+                  onClick={() => toggleExpanded(c.id)}
+                  tabIndex={megaOpen ? 0 : -1}
+                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink"
+                >
+                  <ChevronDown className={cn("size-4 transition-transform duration-300", expanded.has(c.id) && "rotate-180")} aria-hidden />
+                </button>
+              )}
+            </span>
+            {showSubs(c.id, c.children.length) && (
+              <ul className="mb-2 mt-1 space-y-1 border-l border-line pl-3">
+                {c.children.map((k) => (
+                  <li key={k.id}>
+                    <Link href={`/category/${k.slug}`} className="link-underline text-sm text-muted hover:text-ink" tabIndex={megaOpen ? 0 : -1}>
+                      {k.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+        {header.menuAllLink && (
+          <li className="pt-2">
+            <Link href="/category" className="link-underline text-sm text-muted" tabIndex={megaOpen ? 0 : -1}>
+              {header.menuLabel} →
+            </Link>
+          </li>
+        )}
+      </ul>
+    );
+  }
 
   /** "Shop" mega-menu trigger + main links. Boxed: uppercase with dividers. */
   const desktopNav = (extra?: string) => (
@@ -334,7 +386,7 @@ export function HeaderBar({
           <div className="hidden border-t border-line/70 lg:block">
             <nav aria-label="Categories" className="container flex h-11 items-center gap-7 text-sm">
               <button type="button" aria-expanded={megaOpen} aria-controls="mega-menu" onMouseEnter={hoverOpen ? openMega : undefined} onClick={() => setMegaOpen((o) => !o)} className="inline-flex items-center gap-1 font-medium">
-                All categories <ChevronDown className={cn("size-4 transition-transform duration-300", megaOpen && "rotate-180")} aria-hidden />
+                {header.menuLabel} <ChevronDown className={cn("size-4 transition-transform duration-300", megaOpen && "rotate-180")} aria-hidden />
               </button>
               {header.showCategoryBar && categories.slice(0, 7).map((c) => (
                 <Link key={c.id} href={`/category/${c.slug}`} onMouseEnter={hoverOpen ? closeMegaSoon : undefined} className="link-underline text-muted hover:text-ink">{c.name}</Link>
@@ -346,77 +398,84 @@ export function HeaderBar({
           </div>
         )}
 
-        {/* Desktop mega-menu */}
-        <div
-          id="mega-menu"
-          onMouseEnter={hoverOpen ? openMega : undefined}
-          className={cn(
-            "absolute inset-x-0 top-full hidden border-b border-line bg-canvas text-ink shadow-float transition-all duration-500 ease-out",
-            !menuEverywhere && "lg:block",
-            megaOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-2 opacity-0",
-          )}
-        >
-          <div className="container grid grid-cols-[220px_1fr] gap-12 py-10">
-            <div className="space-y-6">
-              <p className="eyebrow">Shop</p>
-              <ul className="space-y-2">
-                {categories.map((c) => (
-                  <li key={c.id}>
-                    <span className="flex items-center gap-2">
-                      <Link href={`/category/${c.slug}`} className="link-underline font-display text-2xl" tabIndex={megaOpen ? 0 : -1}>
-                        {c.name}
-                      </Link>
-                      {collapsed && c.children.length > 0 && (
-                        <button
-                          type="button"
-                          aria-expanded={expanded.has(c.id)}
-                          aria-label={`${expanded.has(c.id) ? "Hide" : "Show"} ${c.name} subcategories`}
-                          onClick={() => toggleExpanded(c.id)}
-                          tabIndex={megaOpen ? 0 : -1}
-                          className="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink"
-                        >
-                          <ChevronDown className={cn("size-4 transition-transform duration-300", expanded.has(c.id) && "rotate-180")} aria-hidden />
-                        </button>
-                      )}
-                    </span>
-                    {c.children.length > 0 && (!collapsed || expanded.has(c.id)) && (
-                      <ul className="mb-2 mt-1 space-y-1 border-l border-line pl-3">
-                        {c.children.map((k) => (
-                          <li key={k.id}>
-                            <Link href={`/category/${k.slug}`} className="link-underline text-sm text-muted hover:text-ink" tabIndex={megaOpen ? 0 : -1}>
-                              {k.name}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-                <li className="pt-2">
-                  <Link href="/category" className="link-underline text-sm text-muted" tabIndex={megaOpen ? 0 : -1}>
-                    All categories →
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <ul className="grid grid-cols-4 gap-5">
-              {featured.map((c, i) => (
-                <li
-                  key={c.id}
-                  className={cn("transition-all duration-500 ease-out", megaOpen ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")}
-                  style={{ transitionDelay: megaOpen ? `${80 + i * 60}ms` : "0ms" }}
-                >
-                  <Link href={`/category/${c.slug}`} className="group block" tabIndex={megaOpen ? 0 : -1}>
-                    <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-surface">
-                      {c.image && <Image src={c.image.url} alt="" fill sizes="240px" className="object-cover transition-transform duration-700 group-hover:scale-105" />}
-                    </div>
-                    <p className="mt-3 text-sm">{c.name}</p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+        {/* Desktop category menu (Studio → Header → Category menu design) */}
+        {menuStyle === "drawer" ? (
+          <div className={cn("fixed inset-0 z-50 hidden", !menuEverywhere && "lg:block", megaOpen ? "visible" : "invisible")} id="mega-menu">
+            <button type="button" aria-label="Close menu" tabIndex={-1} onClick={() => setMegaOpen(false)} className={cn("absolute inset-0 bg-ink/40 transition-opacity duration-500", megaOpen ? "opacity-100" : "opacity-0")} />
+            <aside className={cn("absolute inset-y-0 left-0 flex w-[380px] max-w-[90vw] flex-col overflow-y-auto bg-canvas p-8 text-ink shadow-float transition-transform duration-500 ease-out", megaOpen ? "translate-x-0" : "-translate-x-full")}>
+              <div className="mb-6 flex items-center justify-between">
+                <p className="eyebrow">{header.menuLabel}</p>
+                <button type="button" onClick={() => setMegaOpen(false)} className="inline-flex size-9 items-center justify-center rounded-full hover:bg-surface" aria-label="Close menu" tabIndex={megaOpen ? 0 : -1}>✕</button>
+              </div>
+              {categoryList("drawer")}
+            </aside>
           </div>
-        </div>
+        ) : (
+          <div
+            id="mega-menu"
+            onMouseEnter={hoverOpen ? openMega : undefined}
+            className={cn(
+              "absolute inset-x-0 top-full hidden text-ink transition-all duration-500 ease-out",
+              menuStyle === "dropdown" ? "pointer-events-none" : "border-b border-line bg-canvas shadow-float",
+              !menuEverywhere && "lg:block",
+              megaOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-2 opacity-0",
+            )}
+          >
+            {menuStyle === "dropdown" ? (
+              <div className="container">
+                <div className="pointer-events-auto mt-1 max-h-[70vh] w-80 overflow-y-auto rounded-lg border border-line bg-canvas p-5 shadow-float">{categoryList("dropdown")}</div>
+              </div>
+            ) : menuStyle === "columns" ? (
+              <div className="container py-10">
+                <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-x-10 gap-y-8">
+                  {categories.map((c) => (
+                    <li key={c.id} className="space-y-3">
+                      {header.menuImages && c.image && (
+                        <Link href={`/category/${c.slug}`} className="relative block aspect-[4/3] overflow-hidden rounded-md bg-surface" tabIndex={-1} aria-hidden>
+                          <Image src={c.image.url} alt="" fill sizes="220px" className="object-cover" />
+                        </Link>
+                      )}
+                      <Link href={`/category/${c.slug}`} className="link-underline font-medium" tabIndex={megaOpen ? 0 : -1}>{c.name}</Link>
+                      {!hideSubs && c.children.length > 0 && (
+                        <ul className="space-y-1.5">
+                          {c.children.map((k) => (
+                            <li key={k.id}><Link href={`/category/${k.slug}`} className="link-underline text-sm text-muted hover:text-ink" tabIndex={megaOpen ? 0 : -1}>{k.name}</Link></li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {header.menuAllLink && <Link href="/category" className="link-underline mt-8 inline-block text-sm text-muted" tabIndex={megaOpen ? 0 : -1}>{header.menuLabel} →</Link>}
+              </div>
+            ) : (
+              <div className={cn("container gap-12 py-10", header.menuImages ? "grid grid-cols-[220px_1fr]" : "")}>
+                <div className="space-y-6">
+                  <p className="eyebrow">Shop</p>
+                  {categoryList("mega")}
+                </div>
+                {header.menuImages && (
+                  <ul className="grid grid-cols-4 gap-5">
+                    {featured.map((c, i) => (
+                      <li
+                        key={c.id}
+                        className={cn("transition-all duration-500 ease-out", megaOpen ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")}
+                        style={{ transitionDelay: megaOpen ? `${80 + i * 60}ms` : "0ms" }}
+                      >
+                        <Link href={`/category/${c.slug}`} className="group block" tabIndex={megaOpen ? 0 : -1}>
+                          <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-surface">
+                            {c.image && <Image src={c.image.url} alt="" fill sizes="240px" className="object-cover transition-transform duration-700 group-hover:scale-105" />}
+                          </div>
+                          <p className="mt-3 text-sm">{c.name}</p>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Mobile full-screen menu */}
@@ -434,7 +493,7 @@ export function HeaderBar({
           <ul className="space-y-1">
             {[
               ...categories.map((c) => ({ href: `/category/${c.slug}`, label: c.name, children: c.children })),
-              { href: "/category", label: "All categories", children: [] },
+              ...(header.menuAllLink ? [{ href: "/category", label: header.menuLabel, children: [] }] : []),
             ].map((l, i) => (
               <li key={l.href}>
                 <div className="flex items-center gap-2 overflow-hidden">
@@ -446,7 +505,7 @@ export function HeaderBar({
                   >
                     {l.label}
                   </Link>
-                  {collapsed && l.children.length > 0 && (
+                  {collapsed && !hideSubs && l.children.length > 0 && (
                     <button
                       type="button"
                       aria-expanded={expanded.has(l.href)}
@@ -459,7 +518,7 @@ export function HeaderBar({
                     </button>
                   )}
                 </div>
-                {l.children.length > 0 && (!collapsed || expanded.has(l.href)) && (
+                {showSubs(l.href, l.children.length) && (
                   <ul className={cn("mb-3 flex flex-wrap gap-2 transition-opacity duration-700", mobileOpen ? "opacity-100" : "opacity-0")}>
                     {l.children.map((k) => (
                       <li key={k.id}>

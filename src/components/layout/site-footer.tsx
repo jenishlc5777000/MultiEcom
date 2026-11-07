@@ -3,6 +3,7 @@ import { ArrowUpRight, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { RichTitle } from "@/components/content/rich-title";
 import { mainNav, policyPages, siteConfig } from "@/config/site";
 import { cn, formatINR } from "@/lib/utils";
+import { hasPublishedPosts } from "@/services/blog.service";
 import { getCategories } from "@/services/catalog.service";
 import { getSiteConfig } from "@/services/site-config.service";
 import { getStoreInfo } from "@/services/store.service";
@@ -12,7 +13,7 @@ type Col = { title: string; links: { href: string; label: string }[] };
 
 /** Site footer. The design and text come from Admin → Studio → Footer. */
 export async function SiteFooter() {
-  const [categories, store, site] = await Promise.all([getCategories(), getStoreInfo(), getSiteConfig()]);
+  const [categories, store, site, blogLive] = await Promise.all([getCategories(), getStoreInfo(), getSiteConfig(), hasPublishedPosts().catch(() => false)]);
   const f = site.footer;
   // Studio → Visibility: no links to pages that are switched off.
   const vis = site.visibility.pages;
@@ -33,6 +34,8 @@ export async function SiteFooter() {
     ...(vis.about ? mainNav.filter((l) => l.href === "/about") : []),
     ...(site.contactForm.enabled && vis.contact ? [{ href: "/contact", label: "Contact" }] : []),
     ...(site.shopping.offersPage.enabled ? [{ href: "/offers", label: site.shopping.offersPage.title }] : []),
+    // Admin → Blog → settings ("Show in the footer"), once a post is published.
+    ...(site.blog.enabled && site.blog.showInFooter && blogLive ? [{ href: "/blog", label: site.blog.footerLabel || site.blog.title }] : []),
     ...(site.shopping.favourites.enabled ? [{ href: "/favourites", label: "Favourites" }] : []),
     { href: "/profile", label: "Your orders" },
     { href: "/cart", label: "Cart" },

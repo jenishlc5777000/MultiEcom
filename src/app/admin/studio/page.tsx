@@ -54,7 +54,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
     Setting.findOne({ key: "store" }).select("theme").lean<{ theme?: string }>(),
     previewPages(PREVIEW_FIRST[tab] ?? "/"),
     getCategories(),
-    tab === "shopping" ? listProductsForPicker() : Promise.resolve([]),
+    tab === "shopping" || tab === "content" ? listProductsForPicker() : Promise.resolve([]),
   ]);
   // The theme's own defaults (without overrides), to show what "Theme default" means.
   const theme = getTheme(saved?.theme);
@@ -94,7 +94,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
           {tab === "footer" && <FooterTab initial={site.footer} />}
           {tab === "pages" && <PagesTab initial={site.pages} theme={theme} />}
           {tab === "search" && <SearchTab initial={site.search} theme={theme} />}
-          {tab === "content" && <ContentTab initial={site.content} />}
+          {tab === "content" && <ContentTab initial={site.content} products={pickerProducts} />}
           {tab === "contact" && <ContactTab initial={site.contactForm} />}
           {tab === "shopping" && <ShoppingTab initial={site.shopping} products={pickerProducts} />}
           {tab === "visibility" && <VisibilityTab initial={site.visibility} />}

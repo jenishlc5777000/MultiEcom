@@ -7,6 +7,7 @@ import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
 import { allowedActions, getOrderDetail } from "@/services/admin/order-admin.service";
 import { getReturnsForOrder } from "@/services/return.service";
+import { getOrderFlow } from "@/services/order-flow.service";
 
 export const metadata = { title: "Order" };
 
@@ -15,8 +16,14 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   const detail = await getOrderDetail(id);
   if (!detail) notFound();
   const { order: o, customer, payment } = detail;
-  const returns = await getReturnsForOrder(id);
   const status = o.status as OrderStatus;
+  const [returns, flow] = await Promise.all([getReturnsForOrder(id), getOrderFlow()]);
+  const doneStages = new Map((o.dispatch?.stages ?? []).map((st) => [st.id, st.at]));
+  const stages = status === "DISPATCHED" || doneStages.size
+    ? flow.shipping.stages
+        .filter((st) => st.enabled || doneStages.has(st.id))
+        .map((st) => ({ id: st.id, label: st.label, message: st.message, done: doneStages.has(st.id), at: doneStages.get(st.id)?.toISOString() }))
+    : [];
   const a = o.shippingAddress;
   const refundPending = o.refund?.status === "PENDING" || o.refund?.status === "FAILED";
 
@@ -75,7 +82,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                 <li key={i} className="relative">
                   <span className={`absolute -left-[29px] top-1 size-2.5 rounded-full ring-4 ring-canvas ${i === 0 ? "bg-ink" : "bg-line"}`} aria-hidden />
                   <p className="text-sm font-medium">
-                    {t.internal ? "Note" : ORDER_STATUS_LABEL[t.status as OrderStatus] ?? t.status}
+                    {t.internal ? "Note" : t.label ?? ORDER_STATUS_LABEL[t.status as OrderStatus] ?? t.status}
                     <span className="ml-2 font-normal text-muted">· {t.by}</span>
                     {t.internal && <span className="ml-2 text-xs text-muted">(internal)</span>}
                   </p>
@@ -103,7 +110,14 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
 
         <div className="space-y-6">
           <Card title="Actions">
-            <OrderActions orderId={id} actions={allowedActions(status) as never} refundPending={refundPending} />
+            <OrderActions
+              orderId={id}
+              actions={allowedActions(status, flow) as never}
+              refundPending={refundPending}
+              couriers={flow.shipping.couriers}
+              allowOther={flow.shipping.allowOther}
+              stages={status === "DISPATCHED" ? stages : stages.filter((st) => st.done).map((st) => ({ ...st, done: true }))}
+            />
           </Card>
 
           <Card title="Customer" action={customer && <Link href={`/admin/users/${String(customer._id)}`} className="text-sm text-muted hover:text-ink">Profile</Link>}>

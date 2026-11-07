@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import type { OrderActionInput } from "@/lib/validations/admin";
 import { Field, FormMessage, TextArea, TextInput } from "./form";
 
-type Action = Exclude<OrderActionInput["action"], "note">;
+type Action = Exclude<OrderActionInput["action"], "note" | "ship_stage">;
+type Stage = { id: string; label: string; message: string; done: boolean; at?: string };
+type Courier = { name: string; trackingUrl: string };
 
 const COPY: Record<Action, { label: string; variant: "primary" | "secondary" | "accent"; help: string }> = {
   approve: { label: "Approve order", variant: "primary", help: "Confirms the order and emails the customer." },
@@ -19,12 +21,31 @@ const COPY: Record<Action, { label: string; variant: "primary" | "secondary" | "
 };
 
 /** Owner actions for one order. Only the moves allowed from the current status are shown. */
-export function OrderActions({ orderId, actions, refundPending }: { orderId: string; actions: Action[]; refundPending: boolean }) {
+export function OrderActions({
+  orderId,
+  actions,
+  refundPending,
+  couriers = [],
+  allowOther = true,
+  stages = [],
+}: {
+  orderId: string;
+  actions: Action[];
+  refundPending: boolean;
+  couriers?: Courier[];
+  allowOther?: boolean;
+  /** Courier stages after dispatch (Orders → Order steps). */
+  stages?: Stage[];
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState<Action | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; message: string } | null>(null);
-  const [fields, setFields] = useState({ reason: "", note: "", courier: "", trackingNumber: "", trackingUrl: "" });
+  const [fields, setFields] = useState({ reason: "", note: "", courier: couriers[0]?.name ?? "", trackingNumber: "", trackingUrl: "" });
+  const [stageNote, setStageNote] = useState("");
+  const listed = couriers.some((c) => c.name === fields.courier);
+  const [otherCourier, setOtherCourier] = useState(couriers.length === 0);
+  const autoLink = !otherCourier && Boolean(couriers.find((c) => c.name === fields.courier)?.trackingUrl);
   const [note, setNote] = useState("");
 
   const run = (input: OrderActionInput, done = "Saved.") =>
@@ -62,6 +83,25 @@ export function OrderActions({ orderId, actions, refundPending }: { orderId: str
     <div className="space-y-5">
       {actions.length === 0 && <p className="text-sm text-muted">No further status changes for this order.</p>}
 
+      {stages.length > 0 && (
+        <div className="space-y-2 rounded-md border border-line p-3">
+          <p className="text-sm font-medium">Courier progress</p>
+          <ol className="space-y-1.5">
+            {stages.map((st) => (
+              <li key={st.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className={st.done ? "" : "text-muted"}>{st.done ? "✓ " : ""}{st.label}{st.at ? <span className="ml-1 text-xs text-muted">· {new Date(st.at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span> : null}</span>
+                {!st.done && (
+                  <Button size="sm" variant="secondary" disabled={pending} onClick={() => run({ action: "ship_stage", stageId: st.id, note: stageNote || undefined }, `Marked “${st.label}”.`)}>
+                    Mark
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ol>
+          <TextInput aria-label="Note for the customer (optional)" placeholder="Note for the customer (optional)" value={stageNote} onChange={(e) => setStageNote(e.target.value)} />
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {actions.map((a) => (
           <Button
@@ -88,9 +128,28 @@ export function OrderActions({ orderId, actions, refundPending }: { orderId: str
           <p className="text-sm text-muted">{COPY[open].help}</p>
           {open === "dispatch" ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Courier" htmlFor="courier"><TextInput id="courier" required value={fields.courier} onChange={set("courier")} placeholder="e.g. Delhivery" /></Field>
+              <Field label="Courier" htmlFor="courier">
+                {couriers.length > 0 && !otherCourier ? (
+                  <select
+                    id="courier"
+                    className="h-11 w-full rounded-md border border-line bg-paper px-3 text-sm"
+                    value={listed ? fields.courier : ""}
+                    onChange={(e) => {
+                      if (e.target.value === "__other") {
+                        setOtherCourier(true);
+                        setFields((f) => ({ ...f, courier: "" }));
+                      } else setFields((f) => ({ ...f, courier: e.target.value }));
+                    }}
+                  >
+                    {couriers.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+                    {allowOther && <option value="__other">Other…</option>}
+                  </select>
+                ) : (
+                  <TextInput id="courier" required value={fields.courier} onChange={set("courier")} placeholder="e.g. Delhivery" />
+                )}
+              </Field>
               <Field label="Tracking number" htmlFor="trk"><TextInput id="trk" required value={fields.trackingNumber} onChange={set("trackingNumber")} /></Field>
-              <Field label="Tracking link (optional)" htmlFor="trkurl" className="sm:col-span-2">
+              <Field label={autoLink ? "Tracking link (filled in automatically)" : "Tracking link (optional)"} htmlFor="trkurl" className="sm:col-span-2" hint={autoLink ? "Leave empty to use this courier's tracking link." : undefined}>
                 <TextInput id="trkurl" type="url" value={fields.trackingUrl} onChange={set("trackingUrl")} placeholder="https://" />
               </Field>
             </div>
