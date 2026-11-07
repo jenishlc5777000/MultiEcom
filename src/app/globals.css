@@ -1,0 +1,299 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Default tokens ("Stone & Ink"): see DESIGN.md for roles and contrast notes. */
+@layer base {
+  :root {
+    --canvas: 246 244 240;          /* #F6F4F0 */
+    --surface: 236 232 225;         /* #ECE8E1 */
+    --surface-strong: 226 220 210;  /* #E2DCD2 */
+    --line: 221 215 204;            /* #DDD7CC */
+    --ink: 26 25 23;                /* #1A1917 */
+    --muted: 100 96 90;             /* #64605A */
+    --accent: 162 74 37;            /* #A24A25 */
+    --accent-soft: 231 160 127;     /* #E7A07F, accent on ink backgrounds only */
+    --ready: 63 107 79;             /* #3F6B4F */
+    --ready-soft: 155 211 174;      /* #9BD3AE, success on ink backgrounds only */
+    --mto: 138 90 18;               /* #8A5A12 */
+    --sold: 100 96 90;              /* #64605A */
+    --danger: 179 38 30;            /* #B3261E */
+    --paper: 255 255 255;           /* cards, inputs, popovers */
+    --on-accent: 255 255 255;       /* text on accent / danger fills */
+
+    /* Style tokens: every theme can override these (fonts, shapes, headings). */
+    --font-display: var(--font-instrument);
+    --font-sans: var(--font-geist);
+    --display-weight: 400;          /* heading weight */
+    --display-case: none;           /* heading text-transform */
+    --display-scale: 1;             /* multiplies display/h1/h2 sizes */
+    --tracking-shift: 0em;          /* added to heading letter-spacing */
+    --r-sm: 6px;                    /* small corners: thumbnails, inputs */
+    --r-md: 12px;                   /* cards, popovers */
+    --r-lg: 20px;                   /* large tiles, hero image */
+    --r-pill: 9999px;               /* buttons, chips */
+    --eyebrow-tracking: 0.14em;
+
+    --header-h: 72px;
+    --tabbar-h: 76px;
+  }
+
+  /* Other themes override these variables from src/config/themes.ts
+     (themeCss() → <style> in the root layout). The values above are "Stone & Ink". */
+
+  html { -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+  body { @apply bg-canvas font-sans text-ink antialiased; }
+  h1, h2, h3, h4 { @apply font-display text-ink; font-weight: var(--display-weight); text-transform: var(--display-case); }
+  /* Headings set in the body font (product titles, form sections) keep normal case. */
+  :where(h1, h2, h3, h4).font-sans { text-transform: none; }
+  /* Display-font text outside headings (category tiles, stats) follows the theme too. */
+  :where(.font-display) { font-weight: var(--display-weight); text-transform: var(--display-case); }
+  ::selection { @apply bg-ink text-canvas; }
+  :focus-visible { @apply outline-none ring-2 ring-ink ring-offset-2 ring-offset-canvas; }
+}
+
+@layer components {
+  @media (min-width: 768px) {
+    .container { padding-left: 2.5rem; padding-right: 2.5rem; }
+  }
+
+  .eyebrow { @apply text-eyebrow uppercase text-muted; }
+
+  /* Product-card styles, picked by the theme via <html data-cards="…">. */
+  [data-cards="framed"] .product-card {
+    background: rgb(var(--paper));
+    border: 1px solid rgb(var(--line));
+    border-radius: var(--r-lg);
+    padding: 0.625rem 0.625rem 0.875rem;
+    transition: box-shadow .5s, transform .5s;
+  }
+  [data-cards="framed"] .product-card:hover { box-shadow: 0 18px 40px -22px rgb(0 0 0 / .35); transform: translateY(-3px); }
+  [data-cards="framed"] .product-card-media { border-radius: calc(var(--r-lg) - 0.4rem); }
+  [data-cards="framed"] .product-card-body { padding-left: 0.375rem; padding-right: 0.375rem; }
+  [data-cards="square"] .product-card-media { aspect-ratio: 1 / 1; border: 1px solid rgb(var(--line)); }
+  [data-cards="square"] .product-card-body { border-top: 0; text-transform: uppercase; letter-spacing: 0.04em; }
+  [data-cards="minimal"] .product-card-media { border-radius: 0; }
+  [data-cards="minimal"] .product-card-body { text-align: center; }
+  [data-cards="minimal"] .product-card-body > div { flex-direction: column; align-items: center; gap: 0.25rem; }
+  /* Overlay: name and price float on a panel over the photo */
+  [data-cards="overlay"] .product-card { position: relative; }
+  [data-cards="overlay"] .product-card-media { aspect-ratio: 3 / 4; }
+  [data-cards="overlay"] .product-card-body {
+    position: absolute; left: 0.625rem; right: 0.625rem; bottom: 0.625rem; margin: 0;
+    padding: 0.75rem 0.875rem; border-radius: var(--r-md);
+    background: rgb(var(--paper) / 0.92); backdrop-filter: blur(8px);
+  }
+
+  /* Underline that grows from the left on hover */
+  .link-underline {
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+    transition: background-size .4s cubic-bezier(.2,.7,.2,1);
+  }
+  .link-underline:hover, .link-underline[aria-current="page"] { background-size: 100% 1px; }
+
+  /* Scroll reveal: <Reveal> toggles data-visible */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  [data-reveal][data-visible="true"] { opacity: 1; transform: none; }
+
+  /* Long-form text (policies, about) */
+  .prose-shop { @apply max-w-[68ch] text-[17px] leading-[1.75] text-ink; }
+  .prose-shop h2 { @apply mb-3 mt-12 scroll-mt-28 text-3xl first:mt-0; }
+  .prose-shop h3 { @apply mb-2 mt-8 font-sans text-base font-semibold; }
+  .prose-shop p, .prose-shop ul, .prose-shop ol { @apply mb-4; }
+  .prose-shop ul { @apply list-disc space-y-1.5 pl-5 marker:text-accent; }
+  .prose-shop ol { @apply list-decimal space-y-1.5 pl-5 marker:text-muted; }
+  .prose-shop a { @apply text-accent underline underline-offset-4; }
+  .prose-shop strong { @apply font-semibold; }
+
+  /* Headline lines rising out of a mask */
+  .line-mask { display: block; overflow: hidden; padding-bottom: .06em; }
+  .line-mask > span { display: block; }
+}
+
+/* Scroll-linked parallax where supported (progressive enhancement). */
+@supports (animation-timeline: view()) {
+  @keyframes parallax { from { transform: translateY(-6%) scale(1.12); } to { transform: translateY(6%) scale(1.12); } }
+  .parallax { animation: parallax linear both; animation-timeline: view(); }
+  @keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .grow-x { transform-origin: left; animation: grow-x linear both; animation-timeline: view(); animation-range: entry 10% cover 35%; }
+}
+
+@layer utilities {
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+  .pause-on-hover:hover { animation-play-state: paused; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal] { opacity: 1; transform: none; }
+}
+
+/* ───────────── Admin → Studio: animation controls ───────────── */
+/* Reveal style (scroll-in animation of sections and cards). */
+html[data-reveal-style="fade"] [data-reveal] { transform: none; }
+html[data-reveal-style="zoom"] [data-reveal] { transform: scale(.94); }
+html[data-reveal-style="slide"] [data-reveal] { transform: translateX(-32px); }
+html[data-reveal-style] [data-reveal][data-visible="true"] { transform: none; }
+
+/* Subtle: no looping decoration (float, spinning badge, ticker), quicker reveals. */
+html[data-motion="subtle"] .animate-float,
+html[data-motion="subtle"] .animate-spin-slow,
+html[data-motion="subtle"] .animate-marquee { animation: none !important; }
+html[data-motion="subtle"] [data-reveal] { transition-duration: .35s; transform: none; }
+
+/* None: everything appears instantly. */
+html[data-motion="none"] *, html[data-motion="none"] *::before, html[data-motion="none"] *::after {
+  animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important;
+}
+html[data-motion="none"] [data-reveal] { opacity: 1; transform: none; }
+
+/* ───────────── Theme effects (html[data-effect]) ───────────── */
+/* Hooks: .product-card / .product-card-media (cards), .btn-primary (main buttons),
+   .brand-panel (dark panels), .fx-panel (bordered panels), .site-footer. */
+
+/* Neubrutalism: thick outlines, hard offset shadows, press-down buttons. */
+html[data-effect="brutal"] .product-card-media,
+html[data-effect="brutal"] .fx-panel,
+html[data-effect="brutal"] .brand-panel { border: 2px solid rgb(var(--ink)); box-shadow: 5px 5px 0 rgb(var(--ink)); }
+html[data-effect="brutal"][data-cards="framed"] .product-card { border-width: 2px; border-color: rgb(var(--ink)); box-shadow: 5px 5px 0 rgb(var(--ink)); }
+html[data-effect="brutal"][data-cards="framed"] .product-card .product-card-media { box-shadow: none; }
+html[data-effect="brutal"] .btn-primary { border: 2px solid rgb(var(--ink)); box-shadow: 3px 3px 0 rgb(var(--ink)); background-color: rgb(var(--accent)); color: rgb(var(--on-accent)); }
+html[data-effect="brutal"] .btn-primary:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgb(var(--ink)); }
+html[data-effect="brutal"] .product-card:hover { transform: translate(-2px, -2px); }
+
+/* Glassmorphism: translucent frosted cards and panels. */
+html[data-effect="glass"][data-cards="framed"] .product-card,
+html[data-effect="glass"] .fx-panel {
+  background: rgb(255 255 255 / 0.45); border: 1px solid rgb(255 255 255 / 0.7);
+  backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow: 0 10px 40px -18px rgb(var(--ink) / 0.35);
+}
+html[data-effect="glass"] .product-card-media { box-shadow: 0 1px 0 rgb(255 255 255 / 0.6) inset; }
+html[data-effect="glass"] .btn-primary { box-shadow: 0 10px 30px -10px rgb(var(--accent) / 0.6); }
+
+/* Soft UI: no borders, gentle floating shadows. */
+html[data-effect="soft"] .product-card-media,
+html[data-effect="soft"] .fx-panel { border-color: transparent; box-shadow: 0 18px 40px -22px rgb(var(--ink) / 0.35), 0 2px 6px -2px rgb(var(--ink) / 0.08); }
+html[data-effect="soft"][data-cards="framed"] .product-card { border-color: transparent; box-shadow: 0 20px 44px -26px rgb(var(--ink) / 0.4); }
+html[data-effect="soft"] .btn-primary { box-shadow: 0 12px 24px -12px rgb(var(--ink) / 0.6); }
+
+/* Claymorphism: puffy, with an inner highlight and soft outer shadow. */
+html[data-effect="clay"] .product-card-media,
+html[data-effect="clay"] .fx-panel,
+html[data-effect="clay"][data-cards="framed"] .product-card {
+  border-color: transparent;
+  box-shadow: 0 16px 32px -14px rgb(var(--ink) / 0.3), inset 0 -6px 12px rgb(var(--ink) / 0.06), inset 0 6px 12px rgb(255 255 255 / 0.7);
+}
+html[data-effect="clay"] .btn-primary { box-shadow: 0 10px 20px -8px rgb(var(--ink) / 0.5), inset 0 -3px 6px rgb(0 0 0 / 0.2), inset 0 3px 6px rgb(255 255 255 / 0.25); }
+
+/* Neon: glowing accent outlines on dark themes. */
+html[data-effect="neon"] .btn-primary { background-color: rgb(var(--accent)); color: rgb(var(--on-accent)); box-shadow: 0 0 24px rgb(var(--accent) / 0.55); }
+html[data-effect="neon"] .product-card-media { border: 1px solid rgb(var(--accent) / 0.25); transition: box-shadow .4s, border-color .4s; }
+html[data-effect="neon"] .product-card:hover .product-card-media { border-color: rgb(var(--accent) / 0.8); box-shadow: 0 0 28px rgb(var(--accent) / 0.35); }
+html[data-effect="neon"] .fx-panel { border-color: rgb(var(--accent) / 0.3); box-shadow: 0 0 30px -10px rgb(var(--accent) / 0.4); }
+html[data-effect="neon"] h1 em, html[data-effect="neon"] h2 em { text-shadow: 0 0 22px rgb(var(--accent) / 0.6); color: rgb(var(--accent)); }
+
+/* ───────────── Page backgrounds (html[data-bg]) ───────────── */
+html[data-bg="mesh"] body {
+  background-image:
+    radial-gradient(60rem 40rem at 10% -10%, rgb(var(--accent) / 0.22), transparent 60%),
+    radial-gradient(50rem 36rem at 100% 10%, rgb(var(--accent-soft) / 0.35), transparent 60%),
+    radial-gradient(40rem 30rem at 50% 110%, rgb(var(--surface-strong) / 0.9), transparent 60%);
+  background-attachment: fixed;
+}
+html[data-bg="grid"] body {
+  background-image: linear-gradient(rgb(var(--line) / 0.35) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--line) / 0.35) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+html[data-bg="dots"] body { background-image: radial-gradient(rgb(var(--ink) / 0.12) 1.2px, transparent 1.3px); background-size: 22px 22px; }
+html[data-bg="grain"] body {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Studio: a panel opened from click-to-edit flashes briefly. */
+@keyframes studio-flash { 0%, 60% { box-shadow: 0 0 0 3px #3B82F6; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.studio-flash { animation: studio-flash 1.8s ease-out; }
+
+/* ───────────── Template-family details ───────────── */
+
+/* Highlighted heading words: *word* → italic (default), accent colour, or marker highlight. */
+html[data-em="accent"] :is(h1, h2, h3) em { font-style: normal; color: rgb(var(--accent)); }
+html[data-em="marker"] :is(h1, h2, h3) em {
+  font-style: normal; color: inherit;
+  background: linear-gradient(transparent 60%, rgb(var(--accent-soft) / 0.75) 60%, rgb(var(--accent-soft) / 0.75) 92%, transparent 92%);
+  padding: 0 0.06em;
+}
+
+/* Numbered section labels: "N°02 — The shop". */
+html[data-chrome="numbered"] main { counter-reset: cg-sec; }
+html[data-chrome="numbered"] .section-eyebrow::before {
+  counter-increment: cg-sec;
+  content: "N°" counter(cg-sec, decimal-leading-zero) "  —  ";
+  color: rgb(var(--accent));
+}
+html[data-chrome="numbered"] .section-eyebrow { color: rgb(var(--accent)); }
+
+/* Offset frames: a solid tinted block behind photos and panels. */
+html[data-effect="offset"] .fx-photo { box-shadow: 18px 18px 0 rgb(var(--accent) / 0.16); }
+html[data-effect="offset"] .fx-panel { box-shadow: 10px 10px 0 rgb(var(--accent) / 0.12); }
+html[data-effect="offset"] .product-card-media { border: 1px solid rgb(var(--line)); }
+html[data-effect="offset"] .btn-primary { box-shadow: 4px 4px 0 rgb(var(--accent) / 0.3); }
+
+/* Card style "numbered": 01, 02, 03 badges and accent prices. */
+html[data-cards="numbered"] ul { counter-reset: cg-card; }
+html[data-cards="numbered"] .product-card { counter-increment: cg-card; }
+html[data-cards="numbered"] .product-card-media::after {
+  content: counter(cg-card, decimal-leading-zero);
+  position: absolute; left: 0.75rem; top: 0.75rem; z-index: 2;
+  padding: 0.3rem 0.45rem; font: 600 11px/1 var(--font-sans); letter-spacing: 0.08em;
+  background: rgb(var(--paper)); color: rgb(var(--ink)); border: 1px solid rgb(var(--line));
+}
+html[data-cards="numbered"] .product-card-badges { justify-content: flex-end; }
+html[data-cards="numbered"] .product-card-price span { color: rgb(var(--accent)); font-weight: 600; }
+html[data-cards="numbered"] .product-card-title { font-family: var(--font-display); font-weight: var(--display-weight); text-transform: none; }
+
+/* Card style "listing": price over the photo, details below, a call-to-action strip. */
+.product-card-overlay-price, .product-card-cta { display: none; }
+html[data-cards="listing"] .product-card {
+  overflow: hidden; border: 1px solid rgb(var(--line)); border-radius: var(--r-lg);
+  background: rgb(var(--paper)); box-shadow: 0 14px 34px -24px rgb(var(--ink) / 0.4);
+}
+html[data-cards="listing"] .product-card-media { border-radius: 0; aspect-ratio: 4 / 3; }
+html[data-cards="listing"] .product-card-media::after {
+  content: ""; position: absolute; inset: 50% 0 0 0; z-index: 1;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.6));
+}
+html[data-cards="listing"] .product-card-overlay-price {
+  display: block; position: absolute; left: 0.9rem; bottom: 0.75rem; z-index: 2;
+  color: #fff; font: 700 1.45rem/1 var(--font-display);
+}
+html[data-cards="listing"] .product-card-price { display: none; }
+html[data-cards="listing"] .product-card-body { margin-top: 0.9rem; padding: 0 1rem; }
+html[data-cards="listing"] .product-card-cta {
+  display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+  margin: 0.9rem 1rem 1rem; min-height: 2.5rem; border-radius: var(--r-md);
+  background: rgb(var(--accent) / 0.1); color: rgb(var(--accent)); font-size: 13px; font-weight: 600;
+}
+html[data-cards="listing"] .product-card-arrow { top: 0.75rem; bottom: auto; opacity: 1; transform: none; }
+
+/* Readable highlights on photos and accent-coloured bands. */
+html[data-em] .on-photo :is(h1, h2) em { color: rgb(var(--accent-soft)) !important; background: none; }
+html[data-chrome="numbered"] .bg-accent .section-eyebrow,
+html[data-chrome="numbered"] .bg-accent .section-eyebrow::before { color: rgb(var(--on-accent) / 0.85) !important; }
+
+/* Favourites (Studio → Shopping). */
+html[data-favs="off"] .fav-ui { display: none !important; }
+html[data-cards="listing"] .product-card-arrow { right: 3.4rem; }
+html[data-fav-cards="off"] .product-card-fav { display: none !important; }

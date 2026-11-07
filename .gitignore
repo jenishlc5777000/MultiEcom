@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+.env
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+.data
+
+# local dev uploads (Cloudinary fallback)
+public/uploads
+
+.vercel
+.env*
+# The settings template has no secrets and should be shared
+!.env.example
