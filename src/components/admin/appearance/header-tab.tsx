@@ -183,7 +183,7 @@ export function HeaderTab({ header, logo }: { header: SiteConfig["header"]; logo
             </div>
           ) : (
             <>
-              <ImageUploader folder="brand" max={1} label="Logo image" value={l.v.image ? [l.v.image] : []} onChange={(imgs) => l.set("image", imgs[0] ?? null)} />
+              <ImageUploader folder="brand" path={["logo"]} max={1} label="Logo image" value={l.v.image ? [l.v.image] : []} onChange={(imgs) => l.set("image", imgs[0] ?? null)} />
               <RangeField label="Logo height" value={l.v.height} min={20} max={96} onChange={(x) => l.set("height", x)} />
             </>
           )}
@@ -207,7 +207,7 @@ export function HeaderTab({ header, logo }: { header: SiteConfig["header"]; logo
             ]}
           />
           {l.v.faviconSource === "upload" && (
-            <ImageUploader folder="brand" max={1} label="Icon picture" value={l.v.favicon ? [l.v.favicon] : []} onChange={(imgs) => l.set("favicon", imgs[0] ?? null)} />
+            <ImageUploader folder="brand" path={["favicon"]} max={1} label="Icon picture" value={l.v.favicon ? [l.v.favicon] : []} onChange={(imgs) => l.set("favicon", imgs[0] ?? null)} />
           )}
           {l.v.faviconSource === "logo" && !l.v.image && <p className="text-sm text-mto">There is no logo picture yet. Switch the logo to “Image” above and upload one, or the initials are used.</p>}
           <p className="text-xs text-muted">Use a square PNG or JPG (at least 512 × 512 px). SVG works too. Other formats fall back to the initials.</p>

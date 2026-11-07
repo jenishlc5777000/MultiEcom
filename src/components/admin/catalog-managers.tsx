@@ -170,6 +170,8 @@ function CategoryEditor({
   const key = initial?.id ?? `new-${defaultParent ?? "top"}`;
   const parentRow = parents.find((p) => p.id === f.parent);
   const level = !f.parent ? 0 : parentRow?.depth === 1 ? 2 : 1;
+  // Image folder: categories/<parent>/<subcategory>/… following the chosen parent.
+  const categoryPath = [parentRow?.depth === 1 ? parentRow.parentName : "", parentRow?.name ?? "", f.slug || slugify(f.name) || "new-category"].filter(Boolean);
   // A category with children can only move where the tree stays within three levels.
   const parentOptions = parents.filter((p) => p.id !== initial?.id && p.parentId !== initial?.id && (!initial?.childCount || p.depth === 0) && !(initial?.depth === 0 && initial.childCount > 0));
   const canHaveParent = !(initial?.depth === 0 && (initial?.childCount ?? 0) > 0);
@@ -213,7 +215,7 @@ function CategoryEditor({
       <div className="grid gap-6 md:grid-cols-[1fr_260px]">
         <div>
           <p className="mb-2 text-sm font-medium">Tile image</p>
-          <ImageUploader folder="categories" max={1} label="Category image" value={f.images} onChange={(images) => setF((s) => ({ ...s, images }))} />
+          <ImageUploader folder="categories" path={categoryPath} max={1} label="Category image" value={f.images} onChange={(images) => setF((s) => ({ ...s, images }))} />
         </div>
         <div className="space-y-3">
           <Toggle label="Visible in store" description="Hidden categories (and everything under them) don't appear in menus." checked={f.isActive} onChange={(isActive) => setF((s) => ({ ...s, isActive }))} />

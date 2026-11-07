@@ -165,7 +165,7 @@ export function ProductForm({
 
           <section className={section} aria-labelledby="sec-media">
             <h2 id="sec-media" className={h2}>Photos</h2>
-            <ImageUploader folder="products" value={v.images as UploadedImage[]} onChange={(imgs) => set("images", imgs)} />
+            <ImageUploader folder="products" path={[v.slug || slugify(v.name) || "new-product"]} value={v.images as UploadedImage[]} onChange={(imgs) => set("images", imgs)} />
           </section>
 
           <section className={section} aria-labelledby="sec-variants">

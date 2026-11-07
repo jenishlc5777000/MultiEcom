@@ -163,7 +163,7 @@ export function BlogEditor({ post, defaultAuthor }: { post: PostForEdit | null; 
               </div>
               <TextArea ref={bodyRef} id="pb" aria-label="Post text" value={v.body} onChange={(e) => set("body", e.target.value)} className="min-h-[420px] font-mono text-sm leading-relaxed" placeholder={"Write your post…\n\n## A heading\nA paragraph. Leave an empty line between paragraphs.\n\n- A list item\n\n![Picture description](picture address)"} />
               <p className="text-xs text-muted">{words} words · about {Math.max(1, Math.round(words / 200))} min read. Formatting: ## heading, **bold**, *italic*, - list, &gt; quote, [link](https://…), ![picture](address).</p>
-              <InsertPicture onInsert={(url) => insert(`\n![`, `](${url})\n`, "Picture description")} />
+              <InsertPicture slug={v.slug || slugify(v.title)} onInsert={(url) => insert(`\n![`, `](${url})\n`, "Picture description")} />
             </>
           ) : (
             <div className="min-h-[420px] rounded-md border border-line bg-paper p-6">{v.body ? <PostBody body={v.body} /> : <p className="text-muted">Nothing written yet.</p>}</div>
@@ -189,7 +189,7 @@ export function BlogEditor({ post, defaultAuthor }: { post: PostForEdit | null; 
         </Panel>
 
         <Panel title="Cover picture">
-          <ImageUploader folder="banners" max={1} label="Cover" value={v.cover ? [v.cover] : []} onChange={(imgs) => set("cover", imgs[0] ?? null)} />
+          <ImageUploader folder="blog" path={[v.slug || slugify(v.title) || "new-post", "cover"]} max={1} label="Cover" value={v.cover ? [v.cover] : []} onChange={(imgs) => set("cover", imgs[0] ?? null)} />
         </Panel>
 
         <Panel title="Details">
@@ -204,13 +204,13 @@ export function BlogEditor({ post, defaultAuthor }: { post: PostForEdit | null; 
 }
 
 /** Upload a picture and drop it into the post. */
-function InsertPicture({ onInsert }: { onInsert: (url: string) => void }) {
+function InsertPicture({ onInsert, slug }: { onInsert: (url: string) => void; slug: string }) {
   const [imgs, setImgs] = useState<{ url: string; publicId: string; alt: string }[]>([]);
   return (
     <details className="rounded-md border border-line p-3">
       <summary className="cursor-pointer text-sm font-medium">Add a picture to the post</summary>
       <div className="mt-3 space-y-3">
-        <ImageUploader folder="banners" max={8} label="Upload, then click Insert" value={imgs} onChange={setImgs} />
+        <ImageUploader folder="blog" path={[slug || "new-post"]} max={8} label="Upload, then click Insert" value={imgs} onChange={setImgs} />
         {imgs.length > 0 && (
           <div className="flex flex-wrap gap-3">
             {imgs.map((i) => (

@@ -209,7 +209,7 @@ function SectionEditor({ section, categories, onChange, onDuplicate, onDelete }:
   const imageField = (key: string, label: string) => (
     <div>
       <p className="mb-2 text-sm font-medium">{label}</p>
-      <ImageUploader folder="banners" max={1} label={label} value={sec[key] ? [sec[key] as { url: string; publicId: string; alt: string }] : []} onChange={(imgs) => set(key, imgs[0] ?? null)} />
+      <ImageUploader folder="banners" path={["sections"]} max={1} label={label} value={sec[key] ? [sec[key] as { url: string; publicId: string; alt: string }] : []} onChange={(imgs) => set(key, imgs[0] ?? null)} />
     </div>
   );
 
@@ -287,7 +287,7 @@ function SectionEditor({ section, categories, onChange, onDuplicate, onDelete }:
         )}
         {t === "gallery" && (
           <>
-            <ImageUploader folder="banners" max={18} label="Gallery photos" value={sec.images as { url: string; publicId: string; alt: string }[]} onChange={(imgs) => set("images", imgs)} />
+            <ImageUploader folder="banners" path={["gallery"]} max={18} label="Gallery photos" value={sec.images as { url: string; publicId: string; alt: string }[]} onChange={(imgs) => set("images", imgs)} />
             <RangeField label="Columns" value={Number(sec.columns)} min={2} max={6} unit="" onChange={(x) => set("columns", x)} />
             <Choice label="Photo shape" value={str("shape")} onChange={(x) => set("shape", x)} options={[{ value: "square", label: "Square" }, { value: "portrait", label: "Portrait" }, { value: "landscape", label: "Landscape" }]} />
           </>

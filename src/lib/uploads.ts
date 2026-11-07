@@ -20,7 +20,11 @@ const TYPES: Record<string, string> = {
 
 export class UploadError extends DomainError {}
 
-type Folder = "products" | "categories" | "banners" | "brand" | "reviews" | "returns";
+type Folder = "products" | "categories" | "banners" | "brand" | "blog" | "reviews" | "returns";
+
+/** Sub-folder names under the main folder, e.g. ["mugs", "tapered"] → categories/mugs/tapered. */
+const SEGMENT = /^[a-z0-9][a-z0-9-]{0,59}$/;
+export const cleanSubfolders = (parts: string[]) => parts.map((p) => p.trim().toLowerCase()).filter((p) => SEGMENT.test(p)).slice(0, 4);
 type Active = "cloudinary" | "s3" | "vercel_blob" | "local";
 
 const has = {
@@ -124,8 +128,12 @@ async function putBytes(provider: Active, s: StorageSettings, folder: string, na
   }
 }
 
-/** Store one image with the provider chosen in Admin → Integrations → Image storage. */
-export async function storeImage(file: File, folder: Folder): Promise<Image> {
+/**
+ * Store one image with the provider chosen in Admin → Integrations → Image storage,
+ * in a folder for what it belongs to, e.g. clay-and-glaze/products/speckled-mug/… or
+ * clay-and-glaze/categories/mugs/tapered/….
+ */
+export async function storeImage(file: File, folder: Folder, subfolders: string[] = []): Promise<Image> {
   const ext = TYPES[file.type];
   if (!ext) throw new UploadError("Use a JPG, PNG, WebP or AVIF image.");
   if (file.size > MAX_BYTES) throw new UploadError("Images must be 5 MB or smaller.");
@@ -139,7 +147,8 @@ export async function storeImage(file: File, folder: Folder): Promise<Image> {
         : `The keys for ${storageLabel[storage.provider as Active] ?? storage.provider} are incomplete. Finish them in Admin → Integrations.`,
     );
   }
-  return putBytes(provider, storage, folder, `${randomUUID()}.${ext}`, bytes, file.type);
+  const dir = [folder, ...cleanSubfolders(subfolders)].join("/");
+  return putBytes(provider, storage, dir, `${randomUUID()}.${ext}`, bytes, file.type);
 }
 
 /** Remove a stored image (best effort; unknown ids are ignored). */

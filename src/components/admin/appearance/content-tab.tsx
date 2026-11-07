@@ -40,7 +40,7 @@ export function ContentTab({ initial, products = [] }: { initial: SiteConfig["co
           />
           {c.hero.imageSource !== "products" ? (
             <>
-              <ImageUploader folder="banners" max={6} label="Hero pictures" value={c.hero.images} onChange={(images) => hero({ images })} />
+              <ImageUploader folder="banners" path={["hero"]} max={6} label="Hero pictures" value={c.hero.images} onChange={(images) => hero({ images })} />
               <p className="text-xs text-muted">Upload, reorder (first = main picture) or remove. Wide pictures (about 1600 × 1200 px) look best.</p>
             </>
           ) : (

@@ -58,12 +58,17 @@ export async function deleteProductAction(id: string) {
 export async function uploadImageAction(formData: FormData): Promise<ActionResult<Image>> {
   const file = formData.get("file");
   const folder = formData.get("folder");
+  const path = formData.get("path");
   return ownerAction(
-    z.object({ folder: z.enum(["products", "categories", "banners", "brand"]) }),
-    { folder },
-    async ({ folder }) => {
+    z.object({
+      folder: z.enum(["products", "categories", "banners", "brand", "blog"]),
+      // Sub-folders, e.g. "mugs/tapered" (lowercase letters, numbers and dashes).
+      path: z.string().max(200).regex(/^[a-z0-9/-]*$/).default(""),
+    }),
+    { folder, path: typeof path === "string" ? path : "" },
+    async ({ folder, path }) => {
       if (!(file instanceof File) || file.size === 0) throw new UserFacingError("Choose an image to upload.");
-      return storeImage(file, folder);
+      return storeImage(file, folder, path.split("/").filter(Boolean));
     },
   );
 }

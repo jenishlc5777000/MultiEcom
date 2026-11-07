@@ -11,13 +11,15 @@ export type UploadedImage = { url: string; publicId: string; alt: string };
 type Props = {
   value: UploadedImage[];
   onChange: (images: UploadedImage[]) => void;
-  folder: "products" | "categories" | "banners" | "brand";
+  folder: "products" | "categories" | "banners" | "brand" | "blog";
+  /** Sub-folders under `folder`, e.g. ["mugs", "tapered"] or ["speckled-mug"]. Empty parts are skipped. */
+  path?: string[];
   max?: number;
   label?: string;
 };
 
 /** Multi-image picker: upload, reorder (first = cover), alt text, remove. */
-export function ImageUploader({ value, onChange, folder, max = 12, label = "Photos" }: Props) {
+export function ImageUploader({ value, onChange, folder, path = [], max = 12, label = "Photos" }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,7 @@ export function ImageUploader({ value, onChange, folder, max = 12, label = "Phot
       const fd = new FormData();
       fd.set("file", file);
       fd.set("folder", folder);
+      fd.set("path", path.map((p) => p.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60)).filter(Boolean).join("/"));
       const res = await uploadImageAction(fd);
       if (res.ok) added.push({ url: res.data.url, publicId: res.data.publicId, alt: "" });
       else setError(res.error);
