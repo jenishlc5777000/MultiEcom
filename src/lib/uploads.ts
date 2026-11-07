@@ -107,7 +107,12 @@ async function putBytes(provider: Active, s: StorageSettings, folder: string, na
         const blob = await blobPut(`clay-and-glaze/${folder}/${name}`, bytes, { access: "public", token: s.blobToken, contentType: type, addRandomSuffix: false });
         return { url: blob.url, publicId: `blob:${blob.url}`, alt: "" };
       } catch (e) {
-        throw new UploadError(`Vercel Blob refused the upload: ${e instanceof Error ? e.message : "unknown error"}`);
+        const m = e instanceof Error ? e.message : "unknown error";
+        // Shop pictures must be publicly readable; a private store can't serve them.
+        if (/private/i.test(m)) {
+          throw new UploadError("This Vercel Blob store is private. Shop pictures need a public store: in Vercel → Storage, create a new Blob store with access set to Public, connect it to the project (or paste its token here), then test again.");
+        }
+        throw new UploadError(`Vercel Blob refused the upload: ${m}`);
       }
     }
     case "local": {
