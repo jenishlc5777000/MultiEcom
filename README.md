@@ -1,4 +1,4 @@
-# Clay & Glaze
+# Nibbea
 
 Storefront for handmade ceramics and craft kits. Built with Next.js 15 (App Router, TypeScript), Tailwind and shadcn/ui, MongoDB Atlas with Mongoose, Auth.js (email OTP and Google), Razorpay, Cloudinary and Resend. It installs as a PWA.
 

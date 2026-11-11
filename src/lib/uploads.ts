@@ -95,7 +95,7 @@ async function putBytes(provider: Active, s: StorageSettings, folder: string, na
       cloudinary.config({ cloud_name: s.cloudName, api_key: s.cloudKey, api_secret: s.cloudSecret, secure: true });
       const res = await new Promise<{ secure_url: string; public_id: string; width: number; height: number }>((resolve, reject) => {
         cloudinary.uploader
-          .upload_stream({ folder: `clay-and-glaze/${folder}`, resource_type: "image" }, (err, result) =>
+          .upload_stream({ folder: `nibbea/${folder}`, resource_type: "image" }, (err, result) =>
             err || !result ? reject(new UploadError(`Cloudinary refused the upload: ${err?.message ?? "unknown error"}`)) : resolve(result),
           )
           .end(bytes);
@@ -103,12 +103,12 @@ async function putBytes(provider: Active, s: StorageSettings, folder: string, na
       return { url: res.secure_url, publicId: res.public_id, width: res.width, height: res.height, alt: "" };
     }
     case "s3": {
-      const key = `clay-and-glaze/${folder}/${name}`;
+      const key = `nibbea/${folder}/${name}`;
       return { url: await s3Put(s, key, bytes, type), publicId: `s3:${key}`, alt: "" };
     }
     case "vercel_blob": {
       try {
-        const blob = await blobPut(`clay-and-glaze/${folder}/${name}`, bytes, { access: "public", token: s.blobToken, contentType: type, addRandomSuffix: false });
+        const blob = await blobPut(`nibbea/${folder}/${name}`, bytes, { access: "public", token: s.blobToken, contentType: type, addRandomSuffix: false });
         return { url: blob.url, publicId: `blob:${blob.url}`, alt: "" };
       } catch (e) {
         const m = e instanceof Error ? e.message : "unknown error";
@@ -130,8 +130,8 @@ async function putBytes(provider: Active, s: StorageSettings, folder: string, na
 
 /**
  * Store one image with the provider chosen in Admin → Integrations → Image storage,
- * in a folder for what it belongs to, e.g. clay-and-glaze/products/speckled-mug/… or
- * clay-and-glaze/categories/mugs/tapered/….
+ * in a folder for what it belongs to, e.g. nibbea/products/speckled-mug/… or
+ * nibbea/categories/mugs/tapered/….
  */
 export async function storeImage(file: File, folder: Folder, subfolders: string[] = []): Promise<Image> {
   const ext = TYPES[file.type];

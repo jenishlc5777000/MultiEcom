@@ -37,6 +37,22 @@ async function resolveOwner(create = false): Promise<CartOwner | null> {
   return { guestId };
 }
 
+/**
+ * Remove cart lines whose product or product option no longer exists (deleted
+ * product, removed glaze/size, catalogue re-imported). Left in place they are
+ * invisible on the cart page but still counted and still block checkout.
+ * Returns the remaining lines.
+ */
+export async function pruneMissingCartItems(filter: Record<string, unknown>) {
+  const cart = await Cart.findOne(filter).select("items").lean();
+  if (!cart?.items.length) return [];
+  const products = await Product.find({ _id: { $in: cart.items.map((i) => i.product) } }).select("variants._id").lean<{ _id: Types.ObjectId; variants: { _id: Types.ObjectId }[] }[]>();
+  const live = new Set(products.flatMap((p) => p.variants.map((v) => `${p._id}:${v._id}`)));
+  const kept = cart.items.filter((i) => live.has(`${i.product}:${i.variant}`));
+  if (kept.length !== cart.items.length) await Cart.updateOne({ _id: cart._id }, { $set: { items: kept } });
+  return kept;
+}
+
 export async function getCart(): Promise<CartDTO> {
   await connectDB();
   const owner = await resolveOwner();
@@ -45,6 +61,8 @@ export async function getCart(): Promise<CartDTO> {
 
   const cart = await Cart.findOne(owner).lean();
   if (!cart?.items.length) return empty;
+  // Drop lines for deleted products/options so the badge, cart and checkout agree.
+  if ((await pruneMissingCartItems(owner as Record<string, unknown>)).length !== cart.items.length) return getCart();
 
   const products = await Product.find({ _id: { $in: cart.items.map((i) => i.product) } })
     .select("slug name status availability images variants")

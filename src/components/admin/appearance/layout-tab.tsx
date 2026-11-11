@@ -1,5 +1,10 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { saveSiteSectionAction } from "@/actions/admin/site.actions";
+import { Button } from "@/components/ui/button";
 import { categoryLabels, heroLabels, homeLabels, type Theme } from "@/config/themes";
 import type { SiteConfig } from "@/lib/site-config";
 import { Choice, Panel, SaveBar, SwitchRow, useSection, withTheme } from "./shared";
@@ -18,7 +23,7 @@ const HERO_PREVIEW: Record<string, React.ReactNode> = {
   collage: <span className="grid h-12 grid-cols-2 gap-1"><span className="space-y-1 pt-2"><span className={`${bar} h-1.5 w-4/5`} /></span><span className="relative"><span className={`${box} absolute left-0 top-0 h-3/4 w-3/5`} /><span className={`${box} absolute bottom-0 right-0 h-1/2 w-1/2 bg-ink/25`} /></span></span>,
 };
 
-export function LayoutTab({ initial, theme }: { initial: SiteConfig["design"]; theme: Theme }) {
+export function LayoutTab({ initial, theme, builder }: { initial: SiteConfig["design"]; theme: Theme; builder?: SiteConfig["builder"] }) {
   const s = useSection("design", initial);
   const { v } = s;
   const sec = v.sections;
@@ -26,6 +31,7 @@ export function LayoutTab({ initial, theme }: { initial: SiteConfig["design"]; t
 
   return (
     <div className="space-y-6">
+      {builder?.enabled && builder.sections.length > 0 && <BuilderNotice builder={builder} />}
       <Panel id="home-type" title="Home page type" description={`Your theme "${theme.name}" uses: ${homeLabels[theme.layout.home]}. Pick another to change only the home page structure and keep the theme's look.`}>
         <Choice
           label="Kind of home page"
@@ -92,6 +98,43 @@ export function LayoutTab({ initial, theme }: { initial: SiteConfig["design"]; t
       </Panel>
 
       <SaveBar {...s} />
+    </div>
+  );
+}
+
+/**
+ * The page builder (Studio → Sections) replaces the theme's home page, so "Home page type",
+ * the landing-page sections and the ticker below have no effect while it is on. Say so.
+ */
+function BuilderNotice({ builder }: { builder: SiteConfig["builder"] }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [err, setErr] = useState("");
+  return (
+    <div role="status" className="space-y-3 rounded-lg border border-mto/40 bg-mto/10 p-4 text-sm">
+      <p className="font-medium text-ink">Your home page is built in Sections (page builder), so most settings on this tab don&apos;t change it.</p>
+      <p className="text-muted">
+        While the page builder is on, <strong>Home page type</strong>, <strong>Landing-page sections</strong> and <strong>Category section</strong> here are not used: edit the
+        home page in Sections instead. <strong>Hero design</strong> still applies to the hero section.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button asChild size="sm" variant="secondary"><Link href="/admin/studio?tab=sections">Edit home page in Sections</Link></Button>
+        <Button
+          size="sm"
+          disabled={pending}
+          onClick={() =>
+            confirm("Turn off the page builder and use the home page type chosen below? Your sections are kept and can be turned back on in Sections.") &&
+            start(async () => {
+              const r = await saveSiteSectionAction("builder", { ...builder, enabled: false });
+              if (!r.ok) setErr(r.error);
+              else router.refresh();
+            })
+          }
+        >
+          {pending ? "Switching…" : "Use the settings below instead"}
+        </Button>
+      </div>
+      {err && <p role="alert" className="text-danger">{err}</p>}
     </div>
   );
 }

@@ -180,7 +180,7 @@ function RotatingBadge({ className }: { className?: string }) {
           <path id="badge-circle" d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0" />
         </defs>
         <text className="fill-ink text-[9.5px] uppercase tracking-[0.28em]">
-          <textPath href="#badge-circle">Handmade · Clay &amp; Glaze · Handmade ·</textPath>
+          <textPath href="#badge-circle">Handmade · Nibbea · Handmade · Nibbea ·</textPath>
         </text>
       </svg>
       <svg viewBox="0 0 24 24" className="size-6 transition-transform duration-500 group-hover:translate-y-1" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>

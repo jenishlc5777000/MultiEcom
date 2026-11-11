@@ -29,7 +29,7 @@ export function Logo({ className, onClick, brand = defaultSiteConfig.logo }: { c
   );
 }
 
-/** Text logo: "Clay" + italic accent "&" + "Glaze". Also used for the big footer wordmark. */
+/** Text logo: first part + optional italic accent + last part (default "Nibbea"). Also used for the big footer wordmark. */
 export function Wordmark({ brand = defaultSiteConfig.logo, className, accentClassName = "text-accent" }: { brand?: Brand; className?: string; accentClassName?: string }) {
   return (
     <span className={cn("font-display leading-none tracking-tight", className)}>

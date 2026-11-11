@@ -27,7 +27,7 @@ export default async function HomePage({ searchParams }: Props) {
   ]);
 
   // Studio → Content → Hero decides whether an active homepage banner replaces the hero text.
-  const banner = site.content.hero.useBanner ? banners[0] : undefined;
+  const banner = site.content.hero.useBannerText ? banners[0] : undefined;
   // Studio → Content → Hero: uploaded pictures and the featured card.
   const hero = site.content.hero;
   const uploaded = hero.images.map((i) => ({ url: i.url, alt: i.alt }));

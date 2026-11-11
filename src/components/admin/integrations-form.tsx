@@ -296,7 +296,7 @@ export function IntegrationsForm({ initial }: { initial: IntegrationsAdminView }
         <div className="grid gap-4 sm:grid-cols-2">
           <SecretInput id="ek" label="API key" state={initial.email.apiKey} value={email.apiKey} onChange={(v) => setEmail((s) => ({ ...s, apiKey: v }))} cleared={clear.includes("email.apiKey")} onClear={toggleClear("email.apiKey")} />
           <Field label="From address" htmlFor="ef" hint={`Must be on a domain verified in Resend. Default: ${initial.email.fromDefault}`}>
-            <TextInput id="ef" value={email.from} placeholder="Clay & Glaze <hello@yourdomain.com>" onChange={(e) => setEmail((s) => ({ ...s, from: e.target.value }))} />
+            <TextInput id="ef" value={email.from} placeholder="Nibbea <hello@yourdomain.com>" onChange={(e) => setEmail((s) => ({ ...s, from: e.target.value }))} />
           </Field>
         </div>
         <div className="flex flex-wrap items-end gap-3">

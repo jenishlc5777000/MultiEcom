@@ -87,7 +87,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
               categories={categories.flatMap((c) => [{ slug: c.slug, name: c.name }, ...c.children.map((k) => ({ slug: k.slug, name: `${c.name} › ${k.name}` }))])}
             />
           )}
-          {tab === "layout" && <LayoutTab initial={site.design} theme={theme} />}
+          {tab === "layout" && <LayoutTab initial={site.design} theme={theme} builder={site.builder} />}
           {tab === "style" && <StyleTab initial={site.design} theme={theme} />}
           {tab === "cards" && <CardsTab initial={site.cards} theme={theme} />}
           {tab === "header" && <HeaderTab header={site.header} logo={site.logo} />}

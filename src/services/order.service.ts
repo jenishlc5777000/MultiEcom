@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import { connectDB, withTransaction } from "@/lib/db/connect";
 import { Cart, Glaze, Order, Setting, Size } from "@/models";
 import type { Address } from "@/models";
+import { pruneMissingCartItems } from "./cart.service";
 import { releaseLines, reserveLine } from "./inventory.service";
 
 export class CheckoutError extends Error {}
@@ -46,6 +47,8 @@ export async function createOrderFromCart(user: { id: string; email: string }, a
   await connectDB();
   const userId = new Types.ObjectId(user.id);
 
+  // Lines for deleted products/options are removed first (they would block checkout forever).
+  await pruneMissingCartItems({ user: userId });
   const cart = await Cart.findOne({ user: userId }).lean();
   if (!cart?.items.length) throw new CheckoutError("Your cart is empty.");
 

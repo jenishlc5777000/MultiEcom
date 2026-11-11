@@ -165,7 +165,7 @@ export function HeaderTab({ header, logo }: { header: SiteConfig["header"]; logo
               onChange={(x) => l.set("style", x)}
               columns={2}
               options={[
-                { value: "wordmark", label: "Wordmark", hint: "Clay & Glaze" },
+                { value: "wordmark", label: "Wordmark", hint: "Nibbea" },
                 { value: "monogram", label: "Monogram", hint: "Initials in a square, name below (Nibbea)" },
               ]}
             />

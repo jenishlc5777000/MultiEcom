@@ -27,6 +27,10 @@ const nextConfig: NextConfig = {
   },
   // Mongoose must stay on the Node.js runtime and not be bundled.
   serverExternalPackages: ["mongoose"],
+  // Browsers and search engines ask for /favicon.ico directly: serve the Studio favicon there.
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/pwa-icon/32" }];
+  },
   async headers() {
     return [
       {

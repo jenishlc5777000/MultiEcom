@@ -13,7 +13,7 @@ import { getStoreInfo } from "@/services/store.service";
 
 export const metadata: Metadata = {
   title: "About",
-  description: "The people and the process behind Clay & Glaze handmade ceramics.",
+  description: "The people and the process behind Nibbea handmade ceramics.",
 };
 
 const values = [

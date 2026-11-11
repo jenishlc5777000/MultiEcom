@@ -1,6 +1,6 @@
 export const siteConfig = {
-  name: "Clay & Glaze",
-  shortName: "Clay&Glaze",
+  name: "Nibbea",
+  shortName: "Nibbea",
   description: "Handmade ceramics and craft kits.",
   url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   currency: "INR" as const,

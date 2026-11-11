@@ -11,7 +11,7 @@ const schema = z.object({
   AUTH_GOOGLE_ID: optional,
   AUTH_GOOGLE_SECRET: optional,
   RESEND_API_KEY: optional,
-  EMAIL_FROM: z.string().default("Clay & Glaze <onboarding@resend.dev>"),
+  EMAIL_FROM: z.string().default("Nibbea <onboarding@resend.dev>"),
   RAZORPAY_KEY_ID: optional,
   RAZORPAY_KEY_SECRET: optional,
   RAZORPAY_WEBHOOK_SECRET: optional,

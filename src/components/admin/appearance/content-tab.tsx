@@ -106,7 +106,7 @@ export function ContentTab({ initial, products = [] }: { initial: SiteConfig["co
           )}
           {c.hero.featured !== "hide" && <Field label="Card label" htmlFor="hfl">{input("hfl", c.hero.featuredLabel, (x) => hero({ featuredLabel: x }), 30)}</Field>}
         </div>
-        <SwitchRow label="Use the homepage banner when one is active" hint="On: an active banner's title, text and photo replace the text below. Off: always use this text." checked={c.hero.useBanner} onChange={(x) => hero({ useBanner: x })} />
+        <SwitchRow label="Let a homepage banner replace this text" hint="Off (recommended): the title, text and buttons below always show. On: an active banner from the old demo data replaces them." checked={c.hero.useBannerText} onChange={(x) => hero({ useBannerText: x })} />
         <SwitchRow label="Show the numbers under the hero" hint="Ready to ship · glazes · categories" checked={c.hero.showStats} onChange={(x) => hero({ showStats: x })} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Small line above the title" htmlFor="he">{input("he", c.hero.eyebrow, (x) => hero({ eyebrow: x }), 80)}</Field>

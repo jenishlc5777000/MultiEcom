@@ -169,14 +169,14 @@ const headerSchema = z.object({
 
 const logoSchema = z.object({
   type: z.enum(["text", "image"]).default("text"),
-  /** Text logo look: wordmark ("Clay & Glaze") or monogram (initials in a square above a spaced wordmark). */
+  /** Text logo look: wordmark ("Nibbea") or monogram (initials in a square above a spaced wordmark). */
   style: z.enum(["wordmark", "monogram"]).default("wordmark"),
   /** Monogram letters (1–3), e.g. "N". */
   mark: z.string().trim().max(3).default(""),
   /** Text logo: the accent part is shown in italic accent colour. */
-  textBefore: text(30, "Clay"),
-  textAccent: text(10, "&"),
-  textAfter: text(30, "Glaze"),
+  textBefore: text(30, "Nibbea"),
+  textAccent: text(10, ""),
+  textAfter: text(30, ""),
   image,
   height: int(20, 96, 36),
   /** Browser tab icon (favicon) and phone app icon: initials tile, the logo picture, or a separate picture. */
@@ -259,8 +259,12 @@ const contentSchema = z.object({
       ctaHref: link("/category"),
       secondaryLabel: text(40, "Our story"),
       secondaryHref: link("/about"),
-      /** When a homepage banner is active, use its text and photo instead of the text above. */
-      useBanner: z.boolean().default(true),
+      /**
+       * Let an active homepage banner (old seeded data, no editor in the dashboard) replace the
+       * title, text, button and picture. Off by default so what is typed in Studio always shows.
+       * (Renamed from `useBanner`, whose old default "on" hid Studio edits.)
+       */
+      useBannerText: z.boolean().default(false),
       /** The numbers under the hero (ready to ship, glazes, categories). */
       showStats: z.boolean().default(false),
       /** Hero pictures uploaded in Studio → Content → Hero. First = main picture; the rest feed collage / framed layouts. Empty = newest product photo. */
