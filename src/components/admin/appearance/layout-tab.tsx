@@ -44,6 +44,10 @@ export function LayoutTab({ initial, theme, builder }: { initial: SiteConfig["de
             { value: "lookbook", label: homeLabels.lookbook, hint: "Magazine spreads per category" },
             { value: "spotlight", label: homeLabels.spotlight, hint: "One product, big and ready to buy" },
             { value: "bento", label: homeLabels.bento, hint: "A grid of tiles" },
+            { value: "marketplace", label: homeLabels.marketplace, hint: "Promo banner, category circles, deals, best sellers" },
+            { value: "magazine", label: homeLabels.magazine, hint: "Cover story, numbered picks, category index" },
+            { value: "showcase", label: homeLabels.showcase, hint: "Big statement, collections in alternating rows" },
+            { value: "gallery", label: homeLabels.gallery, hint: "A picture wall of every product" },
           ])}
         />
       </Panel>

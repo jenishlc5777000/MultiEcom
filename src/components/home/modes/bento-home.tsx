@@ -1,3 +1,5 @@
+import { makeT } from "@/lib/labels";
+import { RichTitle } from "@/components/content/rich-title";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Truck } from "lucide-react";
@@ -19,13 +21,14 @@ const SPAN_SM = ["col-span-2", "col-span-1"] as const;
  * categories and shipping promise all in one tiled grid.
  */
 export function BentoHome(d: HomeData) {
+  const t = makeT(d.site.labels);
   const cats = d.categories.slice(0, 4);
   // Cells used by the small tiles (stats + categories) and the 2×2 featured tile.
   const cells = d.stats.length + cats.length + (d.featured ? 4 : 0);
   const promiseSpan = cn(SPAN_SM[(2 - (cells % 2)) % 2], SPAN_MD[(4 - (cells % 4)) % 4]);
   const shipping =
     d.store.shippingFlatFee === 0
-      ? "Free shipping on every order"
+      ? t("trust.freeShippingAll")
       : d.store.freeShippingThreshold > 0
         ? `Free shipping over ${formatINR(d.store.freeShippingThreshold)}`
         : `${formatINR(d.store.shippingFlatFee)} flat shipping`;
@@ -99,7 +102,7 @@ export function BentoHome(d: HomeData) {
 
       {d.newest.length > 0 && (
         <Reveal className="container space-y-10">
-          <SectionHeading eyebrow="New from the studio" title={<>Fresh out of the <em className="italic">kiln</em></>} href="/category" />
+          <SectionHeading eyebrow={t("home.bentoNewEyebrow")} title={<RichTitle text={t("home.bentoNewTitle")} />} href="/category" />
           <ProductGrid products={d.newest.slice(0, 8)} />
         </Reveal>
       )}

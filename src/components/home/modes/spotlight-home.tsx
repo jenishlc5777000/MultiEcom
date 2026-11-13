@@ -9,6 +9,8 @@ import { ProductGrid } from "@/components/product/product-card";
 import { RatingStars } from "@/components/product/rating-stars";
 import { Button, ButtonArrow } from "@/components/ui/button";
 import { formatINR } from "@/lib/utils";
+import { RichTitle } from "@/components/content/rich-title";
+import { makeT } from "@/lib/labels";
 import type { HomeData } from "./types";
 
 /**
@@ -17,6 +19,7 @@ import type { HomeData } from "./types";
  */
 export function SpotlightHome(d: HomeData) {
   const p = d.featured;
+  const t = makeT(d.site.labels);
   const rest = d.newest.filter((n) => n.id !== p?.id);
 
   return (
@@ -27,7 +30,7 @@ export function SpotlightHome(d: HomeData) {
             {p.image && (
               <Image src={p.image.url} alt={p.image.alt} fill priority sizes="(min-width: 1024px) 58vw, 100vw" className="animate-zoom-out object-cover transition-transform duration-1000 group-hover:scale-105" />
             )}
-            <span className="absolute left-4 top-4 rounded-pill bg-canvas/90 px-3 py-1 text-eyebrow uppercase text-ink backdrop-blur">Piece of the week</span>
+            <span className="absolute left-4 top-4 rounded-pill bg-canvas/90 px-3 py-1 text-eyebrow uppercase text-ink backdrop-blur">{t("home.spotlightBadge")}</span>
           </Link>
 
           <div className="space-y-7 lg:col-span-5">
@@ -42,7 +45,7 @@ export function SpotlightHome(d: HomeData) {
             </p>
             {p.swatches.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm text-muted">Available in</p>
+                <p className="text-sm text-muted">{t("home.availableIn")}</p>
                 <div className="flex flex-wrap gap-2">
                   {p.swatches.map((s) => (
                     <span key={s.name} className="inline-flex items-center gap-2 rounded-pill border border-line px-3 py-1.5 text-sm">
@@ -54,16 +57,16 @@ export function SpotlightHome(d: HomeData) {
               </div>
             )}
             <p className="max-w-md leading-relaxed text-muted">
-              {d.banner?.subtitle || "Made by hand, so every one is slightly different. Choose your glaze and size on the next page."}
+              {d.banner?.subtitle || t("home.spotlightText")}
             </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg">
                 <Link href={`/products/${p.slug}`}>
-                  Choose &amp; buy <ButtonArrow />
+                  {t("home.chooseBuy")} <ButtonArrow />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
-                <Link href="/category">Shop everything</Link>
+                <Link href="/category">{t("home.shopEverything")}</Link>
               </Button>
             </div>
             {d.stats.length > 0 && (
@@ -85,14 +88,14 @@ export function SpotlightHome(d: HomeData) {
 
       {rest.length > 0 && (
         <section className="container space-y-10">
-          <SectionHeading eyebrow="The rest of the range" title={<>More <em className="italic">pieces</em></>} href="/category" />
+          <SectionHeading eyebrow={t("home.restEyebrow")} title={<RichTitle text={t("home.restTitle")} />} href="/category" />
           <ProductGrid products={rest.slice(0, 8)} />
         </section>
       )}
 
       {d.categories.length > 0 && (
         <section className="container space-y-10">
-          <SectionHeading eyebrow="Browse" title="By category" href="/category" linkLabel="All categories" />
+          <SectionHeading eyebrow={t("home.browseEyebrow")} title={<RichTitle text={t("home.browseTitle")} />} href="/category" linkLabel={t("home.allCategories")} />
           <CategoryBlock categories={d.categories} layout="cards" />
         </section>
       )}

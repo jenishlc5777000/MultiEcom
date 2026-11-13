@@ -1,4 +1,4 @@
-import { getProductCardsByIds } from "@/services/merch.service";
+import { getBestsellerProducts, getOfferProducts, getProductCardsByIds } from "@/services/merch.service";
 import { RecentlyViewed } from "@/components/shopping/recently-viewed";
 import { BuilderHome } from "@/components/builder/builder-home";
 import { BentoHome } from "@/components/home/modes/bento-home";
@@ -6,6 +6,7 @@ import { LandingHome } from "@/components/home/modes/landing-home";
 import { LookbookHome } from "@/components/home/modes/lookbook-home";
 import { ShopHome } from "@/components/home/modes/shop-home";
 import { SpotlightHome } from "@/components/home/modes/spotlight-home";
+import { GalleryHome, MagazineHome, MarketplaceHome, ShowcaseHome } from "@/components/home/modes/new-modes";
 import type { HomeData, ShopSort } from "@/components/home/modes/types";
 import { getCategories, getHomepageData, getShopFeed } from "@/services/catalog.service";
 import { getSiteConfig } from "@/services/site-config.service";
@@ -87,6 +88,22 @@ export default async function HomePage({ searchParams }: Props) {
       return <SpotlightHome {...data} />;
     case "bento":
       return <BentoHome {...data} />;
+    case "marketplace": {
+      const s = site.shopping;
+      const [deals, bestsellers] = await Promise.all([
+        getOfferProducts({ productIds: s.offers.productIds, includeDiscounted: true }, 8),
+        getBestsellerProducts({ mode: s.bestsellers.mode, productIds: s.bestsellers.productIds, count: 4 }),
+      ]);
+      return <MarketplaceHome {...data} deals={deals} bestsellers={bestsellers} />;
+    }
+    case "magazine":
+      return <MagazineHome {...data} />;
+    case "showcase":
+      return <ShowcaseHome {...data} />;
+    case "gallery": {
+      const feed = await getShopFeed(1, "new");
+      return <GalleryHome {...data} feed={{ ...feed, page: 1, sort: "new" }} />;
+    }
     default:
       return <LandingHome {...data} />;
   }

@@ -18,7 +18,7 @@ export type ExportScope = (typeof EXPORT_SCOPES)[number];
 
 export const IMPORT_PARTS = [
   "theme", "design", "cards", "header", "logo", "footer", "pages",
-  "search", "builder", "content", "contactForm", "shopping", "visibility", "blog", "perTheme", "store",
+  "search", "builder", "content", "labels", "contactForm", "shopping", "visibility", "blog", "perTheme", "store",
 ] as const;
 export type ImportPart = (typeof IMPORT_PARTS)[number];
 
@@ -41,6 +41,7 @@ export const importPartLabels: Record<ImportPart, string> = {
   search: "Search settings",
   builder: "Home-page sections",
   content: "Website text",
+  labels: "Buttons, menus & small texts",
   contactForm: "Contact form & email templates",
   shopping: "Favourites, offers, hot deals, most ordered",
   visibility: "Pages & site parts on/off",

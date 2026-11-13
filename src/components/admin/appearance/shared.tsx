@@ -11,6 +11,10 @@ import { FormMessage } from "../form";
 import { APPLIED_EVENT, PUBLISHED_EVENT, usePreviewDraft } from "./preview";
 
 /** Local state + save/reset for one Appearance section. */
+/** Sections with unsaved edits (Studio warns before leaving the tab or page). */
+const unsaved = new Set<string>();
+export const hasUnsavedSections = () => unsaved.size > 0;
+
 export function useSection<K extends keyof SiteConfig>(name: K, initial: SiteConfig[K]) {
   const router = useRouter();
   const [v, setV] = useState<SiteConfig[K]>(initial);
@@ -37,6 +41,14 @@ export function useSection<K extends keyof SiteConfig>(name: K, initial: SiteCon
       window.removeEventListener(PUBLISHED_EVENT, onPublished);
     };
   }, [name]);
+
+  useEffect(() => {
+    if (dirty) unsaved.add(name);
+    else unsaved.delete(name);
+    return () => {
+      unsaved.delete(name);
+    };
+  }, [dirty, name]);
 
   const set = <F extends keyof SiteConfig[K]>(key: F, value: SiteConfig[K][F]) => {
     setDirty(true);

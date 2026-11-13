@@ -6,13 +6,14 @@ import { ProductCarousel } from "@/components/product/product-carousel";
 import { ProductListing } from "@/components/product/product-listing";
 import { Button, ButtonArrow } from "@/components/ui/button";
 import { cn, formatINR } from "@/lib/utils";
+import { makeT, type LabelKey } from "@/lib/labels";
 import { plainTitle, type HomeData, type ShopSort } from "./types";
 
-const SORTS: { id: ShopSort; label: string }[] = [
-  { id: "new", label: "Newest" },
-  { id: "ready", label: "Ready to ship" },
-  { id: "price-asc", label: "Price: low to high" },
-  { id: "price-desc", label: "Price: high to low" },
+const SORTS: { id: ShopSort; label: LabelKey }[] = [
+  { id: "new", label: "list.sortNew" },
+  { id: "ready", label: "list.readyToShip" },
+  { id: "price-asc", label: "list.sortPriceAsc" },
+  { id: "price-desc", label: "list.sortPriceDesc" },
 ];
 
 const href = (sort: ShopSort, page = 1) => {
@@ -29,10 +30,11 @@ const href = (sort: ShopSort, page = 1) => {
  */
 export function ShopHome(d: HomeData) {
   const hero = d.site.content.hero;
+  const t = makeT(d.site.labels);
   const feed = d.feed ?? { products: d.newest, total: d.newest.length, pageCount: 1, page: 1, sort: "new" as const };
   const shipping =
     d.store.shippingFlatFee === 0
-      ? "Free shipping"
+      ? t("trust.freeShipping")
       : d.store.freeShippingThreshold > 0
         ? `Free shipping over ${formatINR(d.store.freeShippingThreshold)}`
         : `${formatINR(d.store.shippingFlatFee)} flat shipping`;
@@ -80,8 +82,8 @@ export function ShopHome(d: HomeData) {
       {d.categories.length > 0 && (
         <section className="space-y-5">
           <div className="flex items-end justify-between gap-4">
-            <h2 className="text-h3">Shop by category</h2>
-            <Link href="/category" className="link-underline text-sm text-muted">All categories</Link>
+            <h2 className="text-h3">{t("home.shopByCategory")}</h2>
+            <Link href="/category" className="link-underline text-sm text-muted">{t("home.allCategories")}</Link>
           </div>
           <CategoryBlock categories={d.categories} layout={d.theme.layout.categories} />
         </section>
@@ -89,14 +91,14 @@ export function ShopHome(d: HomeData) {
 
       {/* Ready to ship (only on the first page of "Newest") */}
       {feed.page === 1 && feed.sort === "new" && d.readyStock.length > 3 && (
-        <ProductCarousel eyebrow="Ships in 2 days" title="Ready to ship" products={d.readyStock} href="/?sort=ready#products" />
+        <ProductCarousel eyebrow={t("home.readyEyebrow")} title={t("home.readyToShip")} products={d.readyStock} href="/?sort=ready#products" />
       )}
 
       {/* All products */}
       <section id="products" className="scroll-mt-24 space-y-8">
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-4">
           <div>
-            <h2 className="text-h3">All products</h2>
+            <h2 className="text-h3">{t("home.allProducts")}</h2>
             <p className="mt-1 text-sm text-muted">{feed.total} piece{feed.total === 1 ? "" : "s"}</p>
           </div>
           <nav aria-label="Sort products" className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:px-0">
@@ -111,13 +113,13 @@ export function ShopHome(d: HomeData) {
                   feed.sort === s.id ? "border-ink bg-ink text-canvas" : "border-line hover:border-ink",
                 )}
               >
-                {s.label}
+                {t(s.label)}
               </Link>
             ))}
           </nav>
         </div>
 
-        {feed.products.length ? <ProductListing products={feed.products} layout={d.site.pages.shopAll.listing === "theme" ? d.theme.layout.listing : d.site.pages.shopAll.listing} /> : <p className="py-10 text-center text-muted">Nothing here yet. Check back soon.</p>}
+        {feed.products.length ? <ProductListing products={feed.products} layout={d.site.pages.shopAll.listing === "theme" ? d.theme.layout.listing : d.site.pages.shopAll.listing} /> : <p className="py-10 text-center text-muted">{t("home.empty")}</p>}
 
         {feed.pageCount > 1 && (
           <nav aria-label="Pagination" className="flex justify-center gap-2 pt-4">

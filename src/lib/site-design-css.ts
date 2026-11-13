@@ -46,6 +46,9 @@ export function siteDesignCss(site: SiteConfig, theme: Theme): string {
   const mdCols = Math.min(3, c.columns);
   root.push(`--grid-cols:${c.columns}`, `--grid-cols-md:${mdCols}`, `--grid-cols-sm:${c.columnsMobile}`, `--grid-gap:${c.gap}px`);
   root.push(`--marquee-duration:${MARQUEE_SECONDS[animation.marqueeSpeed]}s`);
+  // Product page photo shape (Studio → Pages & lists → Product page).
+  const pp = site.pages.product;
+  root.push(`--pdp-ratio:${pp.photoRatio.replace(":", "/")}`, `--pdp-fit:${pp.photoFit}`);
 
   if (gradient.enabled) {
     root.push(`--brand-gradient:linear-gradient(${gradient.angle}deg, ${gradient.from}, ${gradient.to})`);
@@ -64,6 +67,7 @@ export function siteDesignCss(site: SiteConfig, theme: Theme): string {
   if (!c.showSwatches) rules.push(`.product-card-swatches{display:none !important}`);
   if (!c.showRating) rules.push(`.product-card-rating{display:none !important}`);
   if (!c.showBadges) rules.push(`.product-card-badges{display:none !important}`);
+  else if (!c.badgesOnPhone) rules.push(`@media (max-width:639px){.product-card-badges>:not(.keep-on-phone){display:none !important}}`);
   if (!c.showArrow) rules.push(`.product-card-arrow{display:none !important}`);
   if (c.hover === "none" || !animation.hoverZoom) rules.push(`.product-card-media img{transform:none !important}`);
   if (c.hover === "swap") rules.push(`.product-card-media img{transform:none !important}`);

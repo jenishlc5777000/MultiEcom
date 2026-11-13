@@ -72,6 +72,7 @@ export function CardsTab({ initial, theme }: { initial: SiteConfig["cards"]; the
             <SwitchRow label="Glaze colour dots" checked={c.showSwatches} onChange={(x) => s.set("showSwatches", x)} />
             <SwitchRow label="Star rating" checked={c.showRating} onChange={(x) => s.set("showRating", x)} />
             <SwitchRow label="Badges" hint="Ready to ship, made to order, one of a kind" checked={c.showBadges} onChange={(x) => s.set("showBadges", x)} />
+            {c.showBadges && <SwitchRow label="Badges on phones too" hint="Off: hidden on small screens so they don't cover the photo" checked={c.badgesOnPhone} onChange={(x) => s.set("badgesOnPhone", x)} />}
             <SwitchRow label="Arrow button on hover" checked={c.showArrow} onChange={(x) => s.set("showArrow", x)} />
           </div>
           <Choice

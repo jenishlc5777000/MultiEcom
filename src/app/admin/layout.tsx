@@ -19,8 +19,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       {/* Restore the collapsed sidebar before paint (choice saved in this browser). */}
       <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem("admin-sidebar")==="collapsed")document.documentElement.dataset.adminSb="collapsed"}catch(e){}` }} />
       <aside className="sticky top-0 z-30 border-b border-line bg-surface/80 px-4 pb-3 pt-3 backdrop-blur lg:flex lg:h-dvh lg:flex-col lg:gap-5 lg:border-b-0 lg:border-r lg:px-3 lg:py-5">
-        <div className="mb-2 flex items-center justify-between lg:mb-0">
-          <span className="admin-sb-hide"><Logo brand={site.logo} /></span>
+        <div className="mb-2 flex items-center justify-between gap-2 lg:mb-0">
+          <span className="admin-sb-hide min-w-0 overflow-hidden [&_img]:!h-7 [&_span]:!text-[22px]"><Logo brand={site.logo} /></span>
           <span className="flex items-center gap-2">
             <span className="admin-sb-hide rounded-pill bg-ink px-2.5 py-0.5 text-xs text-canvas">Admin</span>
             <SidebarToggle place="top" />

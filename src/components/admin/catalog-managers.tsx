@@ -216,6 +216,7 @@ function CategoryEditor({
         <div>
           <p className="mb-2 text-sm font-medium">Tile image</p>
           <ImageUploader folder="categories" path={categoryPath} max={1} label="Category image" value={f.images} onChange={(images) => setF((s) => ({ ...s, images }))} />
+          <p className="mt-1 text-xs text-muted">Shown on category tiles and menus, and as the “All {f.name || "…"}” tile on this category&apos;s page.</p>
         </div>
         <div className="space-y-3">
           <Toggle label="Visible in store" description="Hidden categories (and everything under them) don't appear in menus." checked={f.isActive} onChange={(isActive) => setF((s) => ({ ...s, isActive }))} />

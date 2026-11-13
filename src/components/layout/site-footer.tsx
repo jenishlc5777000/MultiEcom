@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { RichTitle } from "@/components/content/rich-title";
 import { mainNav, policyPages, siteConfig } from "@/config/site";
+import { makeT } from "@/lib/labels";
 import { cn, formatINR } from "@/lib/utils";
 import { hasPublishedPosts } from "@/services/blog.service";
 import { getCategories } from "@/services/catalog.service";
@@ -30,20 +31,21 @@ export async function SiteFooter() {
   const heading = cn("text-eyebrow uppercase", tone === "light" ? "text-muted" : tone === "accent" ? "text-on-accent/60" : "text-canvas/50");
   const rule = tone === "light" ? "border-line" : tone === "accent" ? "border-on-accent/20" : "border-canvas/10";
 
+  const t = makeT(site.labels);
   const studio = [
     ...(vis.about ? mainNav.filter((l) => l.href === "/about") : []),
-    ...(site.contactForm.enabled && vis.contact ? [{ href: "/contact", label: "Contact" }] : []),
+    ...(site.contactForm.enabled && vis.contact ? [{ href: "/contact", label: t("footer.contact") }] : []),
     ...(site.shopping.offersPage.enabled ? [{ href: "/offers", label: site.shopping.offersPage.title }] : []),
     // Admin → Blog → settings ("Show in the footer"), once a post is published.
     ...(site.blog.enabled && site.blog.showInFooter && blogLive ? [{ href: "/blog", label: site.blog.footerLabel || site.blog.title }] : []),
-    ...(site.shopping.favourites.enabled ? [{ href: "/favourites", label: "Favourites" }] : []),
-    { href: "/profile", label: "Your orders" },
-    { href: "/cart", label: "Cart" },
+    ...(site.shopping.favourites.enabled ? [{ href: "/favourites", label: t("footer.favourites") }] : []),
+    { href: "/profile", label: t("footer.orders") },
+    { href: "/cart", label: t("footer.cart") },
   ];
   const columns = [
-    f.showCategories && { title: "Shop", links: [...categories.map((c) => ({ href: `/category/${c.slug}`, label: c.name })), ...(vis.search ? [{ href: "/search", label: "Search" }] : [])] },
-    { title: "Studio", links: studio },
-    f.showPolicies && vis.policies && { title: "Help", links: policyPages.map((p) => ({ href: `/policies/${p.slug}`, label: p.label })) },
+    f.showCategories && { title: t("footer.colShop"), links: [...categories.map((c) => ({ href: `/category/${c.slug}`, label: c.name })), ...(vis.search ? [{ href: "/search", label: t("nav.search") }] : [])] },
+    { title: t("footer.colStore"), links: studio },
+    f.showPolicies && vis.policies && { title: t("footer.colHelp"), links: policyPages.map((p) => ({ href: `/policies/${p.slug}`, label: p.label })) },
   ].filter(Boolean) as Col[];
 
   const centeredRow = v === "centered" || v === "minimal" || v === "stacked";
@@ -51,7 +53,7 @@ export async function SiteFooter() {
     <ul className={cn("space-y-1 text-sm", centeredRow && "flex flex-wrap justify-center gap-x-6 space-y-0")}>
       {store.contactEmail && <li><a className="link-underline" href={`mailto:${store.contactEmail}`}>{store.contactEmail}</a></li>}
       {store.contactPhone && <li><a className="link-underline" href={`tel:${store.contactPhone}`}>{store.contactPhone}</a></li>}
-      {store.instagram && <li><a className="link-underline" href={store.instagram} target="_blank" rel="noreferrer">Instagram</a></li>}
+      {store.instagram && <li><a className="link-underline" href={store.instagram} target="_blank" rel="noreferrer">{t("footer.instagram")}</a></li>}
     </ul>
   );
 

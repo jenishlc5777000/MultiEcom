@@ -23,6 +23,9 @@ export type HomeData = {
   newest: ProductCardDTO[];
   categories: CategoryDTO[];
   store: { shippingFlatFee: number; freeShippingThreshold: number; returnWindowDays: number };
+  /** Marketplace home page: offers and most-ordered products. */
+  deals?: ProductCardDTO[];
+  bestsellers?: ProductCardDTO[];
   /** Only loaded for the direct-shop home page. */
   feed?: { products: ProductCardDTO[]; total: number; pageCount: number; page: number; sort: ShopSort };
 };

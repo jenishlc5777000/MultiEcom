@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/components/labels-provider";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
@@ -10,6 +11,7 @@ import { formatINR } from "@/lib/utils";
 import type { CartLineDTO } from "@/types/dto";
 
 export function CartLineItem({ line }: { line: CartLineDTO }) {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const setQty = (qty: number) =>
     startTransition(async () => {
@@ -26,7 +28,7 @@ export function CartLineItem({ line }: { line: CartLineDTO }) {
           {line.name}
         </Link>
         {line.variantLabel && <p className="text-sm text-ink/80">{line.variantLabel}</p>}
-        {line.problem === "unavailable" && <p className="text-sm text-danger">No longer available. Please remove it.</p>}
+        {line.problem === "unavailable" && <p className="text-sm text-danger">{t("cart.unavailable")}</p>}
         {line.problem === "insufficient_stock" && (
           <p className="text-sm text-danger">Only {line.maxQty} left. Please lower the quantity.</p>
         )}

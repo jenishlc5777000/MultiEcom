@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { LabelsProvider } from "@/components/labels-provider";
 import { PreviewIndicator } from "@/components/pwa/preview-indicator";
 import { StudioInspector } from "@/components/pwa/studio-inspector";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
@@ -60,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <style dangerouslySetInnerHTML={{ __html: siteDesignCss(site, theme) }} />
       </head>
       <body className="min-h-dvh">
-        {children}
+        <LabelsProvider labels={site.labels}>{children}</LabelsProvider>
         <ServiceWorkerRegister />
         {preview && <PreviewIndicator />}
         {preview && <StudioInspector />}

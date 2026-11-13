@@ -140,6 +140,32 @@ export function PagesTab({ initial, theme }: { initial: SiteConfig["pages"]; the
           <SwitchRow label="Breadcrumb" checked={prod.showBreadcrumb} onChange={(x) => setProd({ showBreadcrumb: x })} />
           <SwitchRow label="Reviews section" checked={prod.showReviews} onChange={(x) => setProd({ showReviews: x })} />
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Choice
+            label="Product photo shape"
+            value={prod.photoRatio}
+            onChange={(x) => setProd({ photoRatio: x })}
+            columns={5}
+            options={[
+              { value: "4:5", label: "4:5", hint: "Portrait (most phone photos)" },
+              { value: "1:1", label: "Square" },
+              { value: "3:4", label: "3:4", hint: "Taller" },
+              { value: "2:3", label: "2:3", hint: "Tallest" },
+              { value: "4:3", label: "4:3", hint: "Wide" },
+            ]}
+          />
+          <Choice
+            label="How photos fit"
+            value={prod.photoFit}
+            onChange={(x) => setProd({ photoFit: x })}
+            columns={2}
+            options={[
+              { value: "cover", label: "Fill the frame", hint: "Edges may be cut if the shape differs" },
+              { value: "contain", label: "Show the whole photo", hint: "Never cut; a plain band may show" },
+            ]}
+          />
+        </div>
+        <p className="text-xs text-muted">Pick the same shape as your photos (e.g. 4:5) so nothing is cut on phones or laptops.</p>
         <Field label="Note under the details" htmlFor="hn" hint="Leave empty to hide">
           <TextInput id="hn" maxLength={240} value={prod.handmadeNote} onChange={(e) => setProd({ handmadeNote: e.target.value })} />
         </Field>

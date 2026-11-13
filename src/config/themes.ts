@@ -14,7 +14,7 @@
 
 /* ───────────── Building blocks ───────────── */
 
-export type HomeMode = "landing" | "shop" | "lookbook" | "spotlight" | "bento";
+export type HomeMode = "landing" | "shop" | "lookbook" | "spotlight" | "bento" | "marketplace" | "magazine" | "showcase" | "gallery";
 export type HeroLayout = "split" | "centered" | "fullbleed" | "editorial" | "minimal" | "collage" | "framed" | "search";
 export type CategoryLayout = "mosaic" | "cards" | "list" | "circles" | "pills" | "tiles";
 export type CardStyle = "classic" | "framed" | "square" | "minimal" | "overlay" | "numbered" | "listing";
@@ -57,6 +57,10 @@ export const homeLabels: Record<HomeMode, string> = {
   lookbook: "Lookbook magazine",
   spotlight: "Product spotlight",
   bento: "Bento grid",
+  marketplace: "Marketplace",
+  magazine: "Magazine",
+  showcase: "Showcase",
+  gallery: "Picture gallery",
 };
 export const heroLabels: Record<HeroLayout, string> = {
   split: "split hero",
@@ -451,6 +455,92 @@ const input: ThemeInput[] = [
     layout: { home: "landing", hero: "minimal", categories: "list", cards: "classic" },
   },
 
+  /* ── New structures: marketplace, magazine, showcase, gallery ── */
+  {
+    id: "bazaar", name: "Bazaar", group: "shop",
+    description: "Busy marketplace: promo banner with side tiles, round categories, deals and best sellers. Bold orange on white.",
+    colors: { canvas: "#FFFFFF", surface: "#F5F5F7", surfaceStrong: "#EAEAEE", line: "#E4E4EA", ink: "#14141A", muted: "#5F5F6B", accent: "#F25C05", accentSoft: "#FFC49B" },
+    type: { display: "grotesk", weight: 700, scale: 0.74, tracking: -0.03 }, shape: [8, 12, 16, 999], effect: "soft",
+    layout: { home: "marketplace", hero: "split", categories: "circles", cards: "framed", listing: "compact" },
+  },
+  {
+    id: "metromart", name: "Metro Mart", group: "shop",
+    description: "Clean supermarket feel: fresh green, rounded tiles, compact product grid, deals up front.",
+    colors: { canvas: "#F7FAF7", surface: "#EAF3EB", surfaceStrong: "#D8EADA", line: "#DCE8DD", ink: "#10291A", muted: "#4B6354", accent: "#0F9D58", accentSoft: "#9BE3B9" },
+    type: { display: "outfit", weight: 700, scale: 0.74, tracking: -0.02 }, shape: [12, 16, 22, 999], effect: "none",
+    layout: { home: "marketplace", hero: "split", categories: "circles", cards: "classic", listing: "compact" },
+  },
+  {
+    id: "neonbazaar", name: "Neon Bazaar", group: "shop", dark: true,
+    description: "Night market: dark marketplace with glowing magenta, grid backdrop and neon cards.",
+    colors: { canvas: "#0D0B14", surface: "#18142A", surfaceStrong: "#231C3D", line: "#2E2650", ink: "#F3EEFF", muted: "#A79BC9", accent: "#FF3CAC", accentSoft: "#7A2A62", paper: "#120F1E", onAccent: "#FFFFFF" },
+    type: { display: "syne", weight: 800, upper: true, scale: 0.62, tracking: -0.03, eyebrow: 0.2 }, shape: [10, 14, 18, 999], effect: "neon", bg: "grid",
+    layout: { home: "marketplace", hero: "split", categories: "circles", cards: "overlay", listing: "grid" },
+  },
+  {
+    id: "voguedit", name: "Vogue Edit", group: "landing",
+    description: "Fashion-magazine landing: masthead, cover story with drop cap, numbered editor's picks. Black, white and red.",
+    colors: { canvas: "#FFFFFF", surface: "#F4F4F4", surfaceStrong: "#E8E8E8", line: "#111111", ink: "#0A0A0A", muted: "#555555", accent: "#D7263D", accentSoft: "#F4A5AF" },
+    type: { display: "playfair", weight: 700, scale: 1.02, tracking: -0.035, em: "italic" }, shape: [0, 0, 0, 0], chrome: "numbered",
+    layout: { home: "magazine", hero: "editorial", categories: "list", cards: "minimal", listing: "large" },
+  },
+  {
+    id: "sundaypaper", name: "Sunday Paper", group: "landing",
+    description: "Newsprint magazine: cream paper grain, slab headlines, ink-blue accents and a category index.",
+    colors: { canvas: "#F3EEE3", surface: "#E9E2D3", surfaceStrong: "#DDD3BF", line: "#2B2A27", ink: "#1F1E1B", muted: "#5D584E", accent: "#1F4E8C", accentSoft: "#A9C1E3" },
+    type: { display: "zilla", weight: 700, scale: 0.9, tracking: -0.02 }, shape: [2, 2, 4, 2], bg: "grain", chrome: "numbered",
+    layout: { home: "magazine", hero: "editorial", categories: "list", cards: "numbered", listing: "list" },
+  },
+  {
+    id: "ivoryatelier", name: "Ivory Atelier", group: "landing",
+    description: "Luxury showcase: ivory and gold, airy Cormorant type, collections in alternating picture rows.",
+    colors: { canvas: "#FBF8F2", surface: "#F2ECE0", surfaceStrong: "#E7DECD", line: "#E2D8C6", ink: "#1E1A14", muted: "#6E6556", accent: "#B08D57", accentSoft: "#E6D3B0" },
+    type: { display: "cormorant", weight: 500, scale: 1.08, eyebrow: 0.32, em: "italic" }, shape: [0, 2, 4, 999],
+    layout: { home: "showcase", hero: "centered", categories: "tiles", cards: "minimal", listing: "large" },
+  },
+  {
+    id: "noirluxe", name: "Noir Luxe", group: "landing", dark: true,
+    description: "After-dark showcase: deep black, champagne accents, wide cinematic hero and alternating collections.",
+    colors: { canvas: "#0B0B0C", surface: "#151517", surfaceStrong: "#1F1F22", line: "#2A2A2E", ink: "#F2EDE4", muted: "#A39E95", accent: "#D4B483", accentSoft: "#5C4D35", paper: "#111113", onAccent: "#0B0B0C" },
+    type: { display: "dmserif", weight: 400, scale: 1, tracking: -0.02, eyebrow: 0.3 }, shape: [0, 4, 6, 999], effect: "soft",
+    layout: { home: "showcase", hero: "fullbleed", categories: "tiles", cards: "overlay", listing: "large" },
+  },
+  {
+    id: "terrazzo", name: "Terrazzo", group: "landing",
+    description: "Playful showcase: speckled pastel backdrop, chunky rounded shapes, claymorphism buttons.",
+    colors: { canvas: "#FFF6EE", surface: "#FFE9D9", surfaceStrong: "#FFD9BF", line: "#F3D9C6", ink: "#2B1D16", muted: "#7A6253", accent: "#E4572E", accentSoft: "#FFB59E" },
+    type: { display: "fraunces", weight: 700, scale: 0.86, tracking: -0.025 }, shape: [20, 28, 36, 999], effect: "clay", bg: "dots",
+    layout: { home: "showcase", hero: "centered", categories: "cards", cards: "framed", listing: "grid" },
+  },
+  {
+    id: "whitecube", name: "White Cube", group: "special",
+    description: "Art-gallery wall: pure white, monospace labels, every product as a picture in a masonry wall.",
+    colors: { canvas: "#FFFFFF", surface: "#F6F6F6", surfaceStrong: "#ECECEC", line: "#E5E5E5", ink: "#111111", muted: "#6B6B6B", accent: "#111111", accentSoft: "#D4D4D4", onAccent: "#FFFFFF" },
+    type: { display: "mono", weight: 500, upper: true, scale: 0.6, tracking: -0.02, eyebrow: 0.24 }, shape: [0, 0, 0, 0],
+    layout: { home: "gallery", hero: "minimal", categories: "pills", cards: "square", listing: "masonry" },
+  },
+  {
+    id: "popgallery", name: "Pop Gallery", group: "special",
+    description: "Colourful picture wall: hot pink and lilac, Syne headlines, offset frames on every tile.",
+    colors: { canvas: "#FFF5FB", surface: "#FBE3F1", surfaceStrong: "#F5CCE4", line: "#1A1020", ink: "#1A1020", muted: "#6D5A70", accent: "#E6007E", accentSoft: "#FF9ACF" },
+    type: { display: "syne", weight: 800, scale: 0.72, tracking: -0.04 }, shape: [12, 16, 20, 999], effect: "offset",
+    layout: { home: "gallery", hero: "collage", categories: "pills", cards: "overlay", listing: "masonry" },
+  },
+  {
+    id: "darkroom", name: "Darkroom", group: "special", dark: true,
+    description: "Photo gallery after dark: charcoal wall, warm red safelight accent, pictures first.",
+    colors: { canvas: "#121212", surface: "#1C1C1C", surfaceStrong: "#262626", line: "#2F2F2F", ink: "#EDEDED", muted: "#9A9A9A", accent: "#E5484D", accentSoft: "#5C2224", paper: "#161616", onAccent: "#FFFFFF" },
+    type: { display: "geist", weight: 600, scale: 0.78, tracking: -0.03 }, shape: [4, 6, 8, 999], bg: "grain",
+    layout: { home: "gallery", hero: "fullbleed", categories: "pills", cards: "overlay", listing: "masonry" },
+  },
+  {
+    id: "kraftmarket", name: "Kraft Market", group: "shop",
+    description: "Handmade market stall: kraft-paper browns, stamped slab type, deals and best sellers.",
+    colors: { canvas: "#EFE6D8", surface: "#E4D6C1", surfaceStrong: "#D6C3A6", line: "#C9B494", ink: "#2A2116", muted: "#6B5A44", accent: "#2F6B4F", accentSoft: "#9FCBB4" },
+    type: { display: "zilla", weight: 700, scale: 0.8, tracking: -0.01 }, shape: [4, 6, 10, 999], bg: "grain", effect: "offset",
+    layout: { home: "marketplace", hero: "split", categories: "circles", cards: "framed", listing: "compact" },
+  },
+
   /* ── Templates: theme + starter home page (src/config/templates.ts) ── */
   {
     id: "nightdrop", name: "Night Drop", group: "template", dark: true,
@@ -509,6 +599,15 @@ const input: ThemeInput[] = [
     layout: { home: "shop", hero: "split", categories: "tiles", cards: "classic", sections: "shop-first", listing: "grid" },
   },
 ];
+
+// Two themes with the same id would hide one of them in the picker: fail loudly instead.
+{
+  const seen = new Set<string>();
+  for (const t of input) {
+    if (seen.has(t.id)) throw new Error(`Duplicate theme id "${t.id}" in src/config/themes.ts`);
+    seen.add(t.id);
+  }
+}
 
 /* ───────────── Resolved themes ───────────── */
 

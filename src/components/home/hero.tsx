@@ -4,6 +4,7 @@ import { Button, ButtonArrow } from "@/components/ui/button";
 import { SearchBox, type SearchBoxConfig } from "@/components/search/search-box";
 import { HeroSlides } from "./hero-slides";
 import type { HeroLayout } from "@/config/themes";
+import { makeT, type Labels } from "@/lib/labels";
 import { defaultSiteConfig, titleLines, type SiteConfig } from "@/lib/site-config";
 import { cn, formatINR } from "@/lib/utils";
 import type { ImageDTO, ProductCardDTO } from "@/types/dto";
@@ -24,6 +25,8 @@ type Props = {
   featuredLabel?: string;
   /** Pictures to cycle through (Studio → Content → Hero → change automatically). */
   slides?: ImageDTO[];
+  /** Studio → Text & labels. */
+  labels?: Labels;
   /** Search settings for the "search" hero. */
   search?: SearchBoxConfig;
   /** Hero text from Admin → Studio → Content (a homepage banner still wins). */
@@ -386,8 +389,8 @@ function FramedHero(props: Omit<Props, "layout">) {
           <HeroImage image={second} sizes="(min-width: 1024px) 22vw, 45vw" className="absolute bottom-[6%] left-0 h-[52%] w-[42%] animate-clip-up border-4 border-canvas [animation-delay:350ms]" />
           {/* round sticker */}
           <span className="absolute -top-4 right-0 z-10 flex size-24 rotate-12 animate-fade-up flex-col items-center justify-center rounded-full bg-accent text-center text-on-accent shadow-float [animation-delay:900ms] md:size-28">
-            <span className="text-[10px] uppercase tracking-[0.2em]">New</span>
-            <span className="font-display text-2xl leading-none">drop</span>
+            <span className="text-[10px] uppercase tracking-[0.2em]">{makeT(props.labels)("home.newBadge")}</span>
+            <span className="font-display text-2xl leading-none">{makeT(props.labels)("home.newBadgeBottom")}</span>
           </span>
           {/* featured price callout */}
           {props.featured && (
@@ -406,7 +409,7 @@ function FramedHero(props: Omit<Props, "layout">) {
 
 function SearchHero(props: Omit<Props, "layout">) {
   const c = useHeroContent(props);
-  const search = props.search ?? { placeholder: "Search the shop", instant: true, popular: [] };
+  const search = props.search ?? { placeholder: makeT(props.labels)("home.searchShop"), instant: true, popular: [] };
   return (
     <section data-studio="hero" className="hero-root on-photo relative overflow-hidden text-white">
       <HeroImage image={c.heroImage} fit={c.fit} slides={c.slides} sizes="100vw" className="absolute inset-0">

@@ -3,6 +3,7 @@
 import { Minus, Plus } from "lucide-react";
 import Image from "next/image";
 import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useT } from "@/components/labels-provider";
 import { useRouter } from "next/navigation";
 import { addToCartAction } from "@/actions/cart.actions";
 import { Button } from "@/components/ui/button";
@@ -50,13 +51,14 @@ export function ProductPurchase({
   options?: Partial<OptionSettings>;
 }) {
   const router = useRouter();
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(1);
   const showcase = layout === "showcase";
-  const glazeLabel = options?.glazeLabel || "Glaze";
-  const sizeLabel = options?.sizeLabel || "Size";
+  const glazeLabel = options?.glazeLabel || t("product.glaze");
+  const sizeLabel = options?.sizeLabel || t("product.size");
   // Showcase defaults to photo tiles for glazes; classic to colour dots.
   const glazeStyle = options?.glazeStyle || (showcase ? "photo" : "color");
 
@@ -112,7 +114,7 @@ export function ProductPurchase({
   }
 
   const price = variant?.price ?? product.priceFrom;
-  const label = product.availability === "SOLD" ? "Sold" : !variant ? "Choose options" : !canBuy ? "Out of stock" : "Add to Cart";
+  const label = product.availability === "SOLD" ? t("product.sold") : !variant ? t("product.chooseOptions") : !canBuy ? t("product.outOfStock") : t("product.addToCart");
   const selectedGlaze = glazes.find((g) => g.id === glazeId);
 
   /* ───────────── Showcase (Nibbea) ───────────── */
@@ -201,7 +203,7 @@ export function ProductPurchase({
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="font-display text-lg">Quantity</span>
+            <span className="font-display text-lg">{t("product.quantity")}</span>
             <div className="inline-flex items-center rounded-pill border border-line">
               <button type="button" aria-label="Fewer" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} className="inline-flex size-10 items-center justify-center disabled:opacity-30"><Minus className="size-4" /></button>
               <output aria-live="polite" className="w-10 text-center tabular-nums">{qty}</output>
@@ -214,7 +216,7 @@ export function ProductPurchase({
               {added ? "Added ✓" : label}
             </Button>
             <Button size="lg" variant="outline" className="w-full" disabled={!canBuy || pending} onClick={() => submit(true)}>
-              Buy Now
+              {t("product.buyNow")}
             </Button>
           </div>
           <p role="status" aria-live="polite" className="min-h-5 text-sm text-danger">{error}</p>
@@ -232,7 +234,7 @@ export function ProductPurchase({
         {added ? "Added ✓" : label}
       </Button>
       <Button size="lg" className="flex-1" disabled={!canBuy || pending} onClick={() => submit(true)}>
-        Buy Now
+        {t("product.buyNow")}
       </Button>
     </>
   );

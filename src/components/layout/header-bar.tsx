@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, ShoppingCart, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { mainNav, policyPages } from "@/config/site";
+import { useT } from "@/components/labels-provider";
 import { cn } from "@/lib/utils";
 import type { CategoryDTO } from "@/types/dto";
 import { defaultSiteConfig, type SiteConfig } from "@/lib/site-config";
@@ -63,6 +64,7 @@ export function HeaderBar({
   // Minimal: no inline navigation, the full-screen menu is used on every screen size.
   const menuEverywhere = v === "minimal";
   const pathname = usePathname();
+  const t = useT();
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
@@ -197,7 +199,7 @@ export function HeaderBar({
         onClick={() => setMegaOpen((o) => !o)}
         className={cn("inline-flex min-h-touch items-center gap-1", boxed ? "px-5" : "text-[15px]")}
       >
-        <span className={cn("link-underline", megaOpen && "[background-size:100%_1px]")}>Shop</span>
+        <span className={cn("link-underline", megaOpen && "[background-size:100%_1px]")}>{t("nav.shop")}</span>
         <ChevronDown className={cn("size-4 transition-transform duration-300", megaOpen && "rotate-180")} aria-hidden />
       </button>
       {mainLinks.map((l) => (
@@ -226,13 +228,13 @@ export function HeaderBar({
             <span className="flex gap-5">
               {contact?.phone && <a href={`tel:${contact.phone}`} className="link-underline">{contact.phone}</a>}
               {contact?.email && <a href={`mailto:${contact.email}`} className="link-underline">{contact.email}</a>}
-              {!contact?.phone && !contact?.email && <span>Handmade in small batches</span>}
+              {!contact?.phone && !contact?.email && <span>{t("nav.tagline")}</span>}
             </span>
             <span className="flex gap-5">
-              <Link href="/policies/shipping" className="link-underline">Shipping</Link>
-              <Link href="/policies/returns" className="link-underline">Returns</Link>
-              <Link href="/contact" className="link-underline">Contact</Link>
-              <Link href="/profile" className="link-underline">Your orders</Link>
+              <Link href="/policies/shipping" className="link-underline">{t("nav.shipping")}</Link>
+              <Link href="/policies/returns" className="link-underline">{t("nav.returns")}</Link>
+              <Link href="/contact" className="link-underline">{t("nav.contact")}</Link>
+              <Link href="/profile" className="link-underline">{t("nav.orders")}</Link>
             </span>
           </div>
         </div>
@@ -274,7 +276,7 @@ export function HeaderBar({
                 className="btn-primary inline-flex min-h-11 items-center gap-2 rounded-pill bg-ink px-4 text-sm font-medium text-canvas transition-colors hover:bg-ink/90"
               >
                 <Menu className="size-5" aria-hidden />
-                <span className="hidden sm:inline">Category</span>
+                <span className="hidden sm:inline">{t("nav.category")}</span>
                 <ChevronDown className={cn("size-4 transition-transform duration-300", (megaOpen || mobileOpen) && "rotate-180")} aria-hidden />
               </button>
             </div>
@@ -290,7 +292,7 @@ export function HeaderBar({
               {header.showSearch && (
                 <span className="inline-flex min-w-12 flex-col items-center gap-0.5 px-1.5 py-1 text-[11px] font-medium text-ink">
                   <SearchTrigger mode={search.mode} config={searchCfg} className="inline-flex size-5 items-center justify-center transition-colors hover:text-accent [&_svg]:!size-5" />
-                  <span aria-hidden>Search</span>
+                  <span aria-hidden>{t("nav.search")}</span>
                 </span>
               )}
               <Link href="/cart" aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`} className="relative inline-flex min-w-12 flex-col items-center gap-0.5 rounded-md px-1.5 py-1 text-[11px] font-medium text-ink transition-colors hover:text-accent">
@@ -451,7 +453,7 @@ export function HeaderBar({
             ) : (
               <div className={cn("container gap-12 py-10", header.menuImages ? "grid grid-cols-[220px_1fr]" : "")}>
                 <div className="space-y-6">
-                  <p className="eyebrow">Shop</p>
+                  <p className="eyebrow">{t("nav.shop")}</p>
                   {categoryList("mega")}
                 </div>
                 {header.menuImages && (
@@ -489,7 +491,7 @@ export function HeaderBar({
         aria-hidden={!mobileOpen}
       >
         <nav aria-label="Mobile" className="container w-full min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-32">
-          <p className="eyebrow mb-4">Shop</p>
+          <p className="eyebrow mb-4">{t("nav.mobileShop")}</p>
           <ul className="space-y-1">
             {[
               ...categories.map((c) => ({ href: `/category/${c.slug}`, label: c.name, children: c.children })),

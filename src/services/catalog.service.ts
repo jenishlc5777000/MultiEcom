@@ -24,7 +24,7 @@ export const getCategories = cache(sharedCache(async (): Promise<CategoryDTO[]> 
  * A category page: its parent (for a subcategory) or its subcategories (for a
  * top-level one). `productCategoryIds` covers the category and its subcategories.
  */
-export type CategoryNav = { parent: { name: string; slug: string }; items: { id: string; name: string; slug: string; image?: ReturnType<typeof toImage> }[] };
+export type CategoryNav = { parent: { name: string; slug: string; image?: ReturnType<typeof toImage> }; items: { id: string; name: string; slug: string; image?: ReturnType<typeof toImage> }[] };
 
 /**
  * A category page (any of the three levels): its ancestors for the breadcrumb,
@@ -37,7 +37,7 @@ export const getCategoryBySlug = cache(sharedCache(async (slug: string) => {
   await connectDB();
   const c = await Category.findOne({ slug, isActive: true }).lean();
   if (!c) return null;
-  const parent = c.parent ? await Category.findOne({ _id: c.parent, isActive: true }).select("name slug parent options").lean() : null;
+  const parent = c.parent ? await Category.findOne({ _id: c.parent, isActive: true }).select("name slug parent options image").lean() : null;
   if (c.parent && !parent) return null; // inside a hidden category
   const grand = parent?.parent ? await Category.findOne({ _id: parent.parent, isActive: true }).select("name slug options").lean() : null;
   if (parent?.parent && !grand) return null;
@@ -52,8 +52,8 @@ export const getCategoryBySlug = cache(sharedCache(async (slug: string) => {
 
   // Which links to show above the products.
   let nav: CategoryNav | null = null;
-  if (depth === 0 || (depth === 1 && children.length)) nav = { parent: { name: c.name, slug: c.slug }, items: children.map(card) };
-  else if (parent) nav = { parent: { name: parent.name, slug: parent.slug }, items: siblings.map(card) };
+  if (depth === 0 || (depth === 1 && children.length)) nav = { parent: { name: c.name, slug: c.slug, image: toImage(c.image as never, c.name) }, items: children.map(card) };
+  else if (parent) nav = { parent: { name: parent.name, slug: parent.slug, image: toImage((parent as { image?: unknown }).image as never, parent.name) }, items: siblings.map(card) };
 
   // Product options (labels, glaze display, allowed values): nearest category that sets them.
   type WithOptions = { options?: { glazeLabel?: string | null; sizeLabel?: string | null; glazeStyle?: string | null } | null };

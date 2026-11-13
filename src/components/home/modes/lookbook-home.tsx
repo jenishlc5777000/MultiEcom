@@ -1,3 +1,5 @@
+import { RichTitle } from "@/components/content/rich-title";
+import { makeT } from "@/lib/labels";
 import Image from "next/image";
 import Link from "next/link";
 import { ClosingCta } from "@/components/home/closing-cta";
@@ -17,6 +19,7 @@ import type { HomeData } from "./types";
  * spread per category with a few of its pieces.
  */
 export async function LookbookHome(d: HomeData) {
+  const t = makeT(d.site.labels);
   const chapters = d.categories.slice(0, 4);
   // A few products for each chapter (the category plus its subcategories).
   const picks = await Promise.all(chapters.map((c) => getProductsByCategory([c.id, ...c.children.map((k) => k.id)]).then((r) => r.products.slice(0, 2))));
@@ -28,7 +31,7 @@ export async function LookbookHome(d: HomeData) {
       {/* Masthead */}
       <section className="container pt-6 md:pt-10">
         <div className="flex flex-wrap items-center justify-between gap-3 border-y border-line py-3 text-eyebrow uppercase">
-          <span>The Lookbook</span>
+          <span>{t("home.lookbookTitle")}</span>
           <span className="text-muted">{month}</span>
           <span className="hidden text-muted sm:inline">{d.categories.length} chapters · {d.stats[0]?.value ?? d.newest.length} pieces</span>
         </div>
@@ -44,7 +47,7 @@ export async function LookbookHome(d: HomeData) {
               <Image src={d.heroImage.url} alt={d.heroImage.alt} fill priority sizes="100vw" className="animate-zoom-out object-cover" />
             </div>
             <figcaption className="mt-3 flex justify-between text-sm text-muted">
-              <span>Cover</span>
+              <span>{t("home.lookbookCover")}</span>
               {d.featured && <Link href={`/products/${d.featured.slug}`} className="link-underline">{d.featured.name}</Link>}
             </figcaption>
           </figure>
@@ -59,8 +62,8 @@ export async function LookbookHome(d: HomeData) {
       {d.newest.length > 0 && (
         <section className="container space-y-10">
           <div className="border-t border-line pt-6 text-center">
-            <p className="eyebrow">Also in this issue</p>
-            <h2 className="mt-3 text-h2">New from the <em className="italic">studio</em></h2>
+            <p className="eyebrow">{t("home.lookbookAlso")}</p>
+            <h2 className="mt-3 text-h2"><RichTitle text={t("home.lookbookNew")} /></h2>
           </div>
           <ProductGrid products={d.newest.slice(0, 8)} />
         </section>

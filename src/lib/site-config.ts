@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { FONT_KEYS } from "@/config/themes";
 import { builderSchema } from "./builder";
+import { labelsSchema } from "./labels";
 
 /**
  * Everything the owner can customise in Admin → Studio, with defaults.
@@ -28,7 +29,7 @@ const link = (def: string) =>
 const int = (min: number, max: number, def: number) => z.coerce.number().int().min(min).max(max).default(def);
 const image = z.object({ url: z.string().max(500), publicId: z.string().max(300), alt: z.string().max(200).default("") }).nullable().default(null);
 
-export const HOME_MODES = ["theme", "landing", "shop", "lookbook", "spotlight", "bento"] as const;
+export const HOME_MODES = ["theme", "landing", "shop", "lookbook", "spotlight", "bento", "marketplace", "magazine", "showcase", "gallery"] as const;
 export const HERO_LAYOUTS = ["theme", "split", "centered", "fullbleed", "editorial", "minimal", "collage", "framed", "search"] as const;
 export const CATEGORY_LAYOUTS = ["theme", "mosaic", "cards", "list", "circles", "pills", "tiles"] as const;
 export const CARD_STYLES = ["theme", "classic", "framed", "square", "minimal", "overlay", "numbered", "listing"] as const;
@@ -141,6 +142,8 @@ const cardsSchema = z.object({
   showSwatches: z.boolean().default(true),
   showRating: z.boolean().default(true),
   showBadges: z.boolean().default(true),
+  /** Phones: hide the "Ready to ship" badges so they don't cover the small product photos. */
+  badgesOnPhone: z.boolean().default(false),
   showArrow: z.boolean().default(true),
   hover: z.enum(["zoom", "lift", "swap", "none"]).default("zoom"),
 });
@@ -230,6 +233,9 @@ const pagesSchema = z.object({
       showBreadcrumb: z.boolean().default(true),
       showReviews: z.boolean().default(true),
       handmadeNote: text(240, "Each piece is handmade, so small variations in glaze and form are part of its character."),
+      /** Shape of the big product photo (same on phone and laptop), and whether it fills the frame or shows the whole photo. */
+      photoRatio: z.enum(["4:5", "1:1", "3:4", "2:3", "4:3"]).default("4:5"),
+      photoFit: z.enum(["cover", "contain"]).default("cover"),
     })
     .default({}),
   shopAll: z
@@ -529,6 +535,8 @@ export const siteConfigSchema = z.object({
   builder: builderSchema.default({}),
   /** Admin → Blog → settings: /blog page, footer / menu link. */
   blog: blogSchema.default({}),
+  /** Studio → Text & labels: buttons, menu items, small headings (empty = default). */
+  labels: labelsSchema,
   /** Studio → Shopping: favourites, recently viewed, offers, hot deals, most ordered. */
   shopping: shoppingSchema.default({}),
   /** Studio → Visibility: turn pages, header, footer and other parts on or off. */

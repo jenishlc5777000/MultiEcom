@@ -12,7 +12,10 @@ import { listProductsForPicker } from "@/services/merch.service";
 import { getCategories } from "@/services/catalog.service";
 import { StyleTab } from "@/components/admin/appearance/style-tab";
 import { ThemeTab } from "@/components/admin/appearance/theme-tab";
-import { PageHeader, Tabs } from "@/components/admin/ui";
+import { PageHeader } from "@/components/admin/ui";
+import { LabelsTab } from "@/components/admin/appearance/labels-tab";
+import { StudioNav } from "@/components/admin/appearance/studio-nav";
+import { STUDIO_TABS, type StudioTab } from "@/components/admin/appearance/studio-tabs";
 import { getTheme } from "@/config/themes";
 import { connectDB } from "@/lib/db/connect";
 import { Setting } from "@/models";
@@ -21,22 +24,7 @@ import { getSiteConfig } from "@/services/site-config.service";
 
 export const metadata = { title: "Studio" };
 
-const TABS = [
-  { value: "theme", label: "Theme" },
-  { value: "sections", label: "Sections (page builder)" },
-  { value: "layout", label: "Layout & hero" },
-  { value: "style", label: "Fonts, colours & effects" },
-  { value: "cards", label: "Product cards" },
-  { value: "header", label: "Header & logo" },
-  { value: "footer", label: "Footer" },
-  { value: "pages", label: "Pages & lists" },
-  { value: "search", label: "Search" },
-  { value: "content", label: "Content" },
-  { value: "contact", label: "Contact form" },
-  { value: "shopping", label: "Shopping" },
-  { value: "visibility", label: "Visibility" },
-] as const;
-type Tab = (typeof TABS)[number]["value"];
+type Tab = StudioTab;
 
 const PREVIEW_FIRST: Partial<Record<Tab, "/" | "/contact" | "/search" | "category">> = { contact: "/contact", pages: "category", search: "/search" };
 
@@ -47,7 +35,7 @@ const PREVIEW_FIRST: Partial<Record<Tab, "/" | "/contact" | "/search" | "categor
  */
 export default async function StudioPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab: raw } = await searchParams;
-  const tab: Tab = TABS.some((t) => t.value === raw) ? (raw as Tab) : "theme";
+  const tab: Tab = (STUDIO_TABS as readonly string[]).includes(raw ?? "") ? (raw as Tab) : "theme";
   await connectDB();
   const [site, saved, pages, categories, pickerProducts] = await Promise.all([
     getSiteConfig(),
@@ -75,7 +63,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
           </>
         }
       />
-      <Tabs current={tab} items={TABS.map((t) => ({ ...t, href: `/admin/studio?tab=${t.value}` }))} />
+      <StudioNav current={tab} />
       <PreviewLayout pages={pages}>
         {/* key: remount a tab after saving / switching so it shows the stored values */}
         <div key={tab}>
@@ -95,6 +83,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
           {tab === "pages" && <PagesTab initial={site.pages} theme={theme} />}
           {tab === "search" && <SearchTab initial={site.search} theme={theme} />}
           {tab === "content" && <ContentTab initial={site.content} products={pickerProducts} />}
+          {tab === "labels" && <LabelsTab initial={site.labels} />}
           {tab === "contact" && <ContactTab initial={site.contactForm} />}
           {tab === "shopping" && <ShoppingTab initial={site.shopping} products={pickerProducts} />}
           {tab === "visibility" && <VisibilityTab initial={site.visibility} />}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { LayoutGrid } from "lucide-react";
 import { notFound } from "next/navigation";
 import { PageHero } from "@/components/content/page-hero";
 import { ProductFilters } from "@/components/product/product-filters";
@@ -44,7 +45,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const listing: ListingLayout = opts.listing === "theme" ? theme.layout.listing : opts.listing;
   // Links above the products: the subcategories, or the sibling patterns (Tapered / Round / Classic).
   const parent: NavParent | null = category.nav
-    ? { id: `nav-${category.nav.parent.slug}`, slug: category.nav.parent.slug, name: category.nav.parent.name, children: category.nav.items, noAll: category.nav.parent.slug === category.slug ? category.requiresChild : category.depth === 2 }
+    ? { id: `nav-${category.nav.parent.slug}`, slug: category.nav.parent.slug, name: category.nav.parent.name, image: category.nav.parent.image, children: category.nav.items, noAll: category.nav.parent.slug === category.slug ? category.requiresChild : category.depth === 2 }
     : null;
   const path = `/category/${slug}`;
 
@@ -213,7 +214,12 @@ function SubcategoryTiles({ parent, activeSlug }: { parent: NavParent; activeSlu
             <li key={c.slug}>
               <Link href={`/category/${c.slug}`} aria-current={active ? "page" : undefined} className="group block text-center">
                 <span className={cn("relative mb-2 block aspect-square overflow-hidden rounded-md bg-surface ring-offset-2 ring-offset-canvas transition", active ? "ring-2 ring-ink" : "group-hover:ring-1 group-hover:ring-line")}>
-                  {c.image && <Image src={c.image.url} alt="" fill sizes="160px" className="object-cover transition-transform duration-700 group-hover:scale-105" />}
+                  {c.image ? (
+                    <Image src={c.image.url} alt="" fill sizes="160px" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                  ) : (
+                    // No picture yet (set one in Admin → Categories): a neat icon instead of an empty box.
+                    <span className="flex h-full items-center justify-center text-muted"><LayoutGrid className="size-8" strokeWidth={1.4} aria-hidden /></span>
+                  )}
                 </span>
                 <span className={cn("text-sm", active ? "font-medium" : "text-muted group-hover:text-ink")}>{c.name}</span>
               </Link>

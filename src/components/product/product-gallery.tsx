@@ -31,7 +31,7 @@ export function ShowcaseGallery({ images, resetKey }: { images: LabelledImage[];
     setIndex(0);
   }, [api, resetKey]);
 
-  if (!images.length) return <div className="aspect-square rounded-lg bg-surface" />;
+  if (!images.length) return <div className="aspect-[var(--pdp-ratio,4/5)] rounded-lg bg-surface" />;
 
   return (
     <div className="flex gap-4">
@@ -58,8 +58,8 @@ export function ShowcaseGallery({ images, resetKey }: { images: LabelledImage[];
         <div ref={ref} className="overflow-hidden rounded-sm bg-surface">
           <div className="flex">
             {images.map((img, i) => (
-              <div key={`${img.url}-${i}`} className="relative aspect-square min-w-0 shrink-0 basis-full">
-                <Image src={img.url} alt={img.alt} fill priority={i === 0} sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
+              <div key={`${img.url}-${i}`} className="relative aspect-[var(--pdp-ratio,4/5)] min-w-0 shrink-0 basis-full">
+                <Image src={img.url} alt={img.alt} fill priority={i === 0} sizes="(min-width: 768px) 50vw, 100vw" className="[object-fit:var(--pdp-fit,cover)]" />
               </div>
             ))}
           </div>
@@ -96,21 +96,21 @@ export function ProductGallery({ images, resetKey }: { images: ImageDTO[]; reset
     setIndex(0);
   }, [api, resetKey]);
 
-  if (!images.length) return <div className="aspect-square rounded-lg bg-surface" />;
+  if (!images.length) return <div className="aspect-[var(--pdp-ratio,4/5)] rounded-lg bg-surface" />;
 
   return (
     <div className="space-y-3">
       <div ref={ref} className="overflow-hidden rounded-lg bg-surface">
         <div className="flex">
           {images.map((img, i) => (
-            <div key={`${img.url}-${i}`} className="relative aspect-square min-w-0 shrink-0 basis-full">
+            <div key={`${img.url}-${i}`} className="relative aspect-[var(--pdp-ratio,4/5)] min-w-0 shrink-0 basis-full">
               <Image
                 src={img.url}
                 alt={img.alt}
                 fill
                 priority={i === 0}
                 sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover"
+                className="[object-fit:var(--pdp-fit,cover)]"
               />
             </div>
           ))}

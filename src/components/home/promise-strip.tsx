@@ -1,23 +1,26 @@
 import Link from "next/link";
 import { RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { Reveal } from "@/components/motion/reveal";
+import { makeT } from "@/lib/labels";
 import { formatINR } from "@/lib/utils";
+import { getSiteConfig } from "@/services/site-config.service";
 
 type Props = { shippingFlatFee: number; freeShippingThreshold: number; returnWindowDays: number };
 
 /** Built from store settings, so it always matches checkout and the policies. */
-export function PromiseStrip({ shippingFlatFee, freeShippingThreshold, returnWindowDays }: Props) {
+export async function PromiseStrip({ shippingFlatFee, freeShippingThreshold, returnWindowDays }: Props) {
+  const t = makeT((await getSiteConfig()).labels);
   const shipping =
     shippingFlatFee === 0
-      ? "Free shipping on every order."
+      ? `${t("trust.freeShippingAll")}.`
       : freeShippingThreshold > 0
         ? `${formatINR(shippingFlatFee)} flat shipping, free on orders over ${formatINR(freeShippingThreshold)}.`
         : `${formatINR(shippingFlatFee)} flat shipping across India.`;
 
   const items = [
-    { icon: Truck, title: "Packed with care", body: shipping, href: "/policies/shipping" },
-    { icon: RotateCcw, title: "Easy returns", body: `Something not right? Request a return within ${returnWindowDays} days of delivery.`, href: "/policies/returns" },
-    { icon: ShieldCheck, title: "Secure checkout", body: "Pay by UPI, card or netbanking through Razorpay.", href: "/policies/terms" },
+    { icon: Truck, title: t("trust.packed"), body: shipping, href: "/policies/shipping" },
+    { icon: RotateCcw, title: t("trust.returns"), body: t("trust.returnsBody").replaceAll("{days}", String(returnWindowDays)), href: "/policies/returns" },
+    { icon: ShieldCheck, title: t("trust.secure"), body: t("trust.secureBody"), href: "/policies/terms" },
   ];
 
   return (

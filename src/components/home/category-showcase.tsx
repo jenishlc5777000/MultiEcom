@@ -1,3 +1,5 @@
+import { makeT } from "@/lib/labels";
+import { getSiteConfig } from "@/services/site-config.service";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -9,14 +11,17 @@ import type { CategoryDTO } from "@/types/dto";
 import { SectionHeading } from "./section-heading";
 
 type Props = { categories: CategoryDTO[]; layout?: CategoryLayout };
-type ShowcaseProps = Props & { eyebrow?: string; title?: string };
+type ShowcaseProps = Props & { eyebrow?: string; title?: string; linkLabel?: string };
 
 /** Category section of the landing page; the layout comes from the active theme. */
-export function CategoryShowcase({ categories, layout = "mosaic", eyebrow = "Shop by category", title = "Find your *piece*" }: ShowcaseProps) {
+export async function CategoryShowcase({ categories, layout = "mosaic", eyebrow, title = "Find your *piece*", linkLabel }: ShowcaseProps) {
+  const t = makeT((await getSiteConfig()).labels);
+  eyebrow ??= t("home.shopByCategory");
+  linkLabel ??= t("home.allCategories");
   if (!categories.length) return null;
   return (
     <section id="shop" data-studio="categories" className="container scroll-mt-24 space-y-10">
-      <SectionHeading eyebrow={eyebrow} title={<RichTitle text={title} />} href="/category" linkLabel="All categories" />
+      <SectionHeading eyebrow={eyebrow} title={<RichTitle text={title} />} href="/category" linkLabel={linkLabel} />
       <CategoryBlock categories={categories} layout={layout} />
     </section>
   );

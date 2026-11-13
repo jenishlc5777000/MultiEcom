@@ -312,3 +312,7 @@ html[data-fav-cards="off"] .product-card-fav { display: none !important; }
   /* Collapsed: the top row holds only the expand button, centred. */
   html[data-admin-sb="collapsed"] .admin-shell aside > div:first-child { justify-content: center; }
 }
+
+/* Studio → "Find a setting": the panel you jumped to is outlined for a moment. */
+.studio-panel:target { animation: studio-target 2.4s ease-out 1; scroll-margin-top: 1.5rem; }
+@keyframes studio-target { 0%, 60% { box-shadow: 0 0 0 3px rgb(var(--accent) / 0.65); } 100% { box-shadow: 0 0 0 0 rgb(var(--accent) / 0); } }
