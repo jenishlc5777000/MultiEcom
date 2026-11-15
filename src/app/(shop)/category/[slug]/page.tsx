@@ -31,12 +31,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   if (!category) notFound();
 
   const p = browseParams.parse(raw);
+  const selectedPattern = category.requiresChild && raw.pattern
+    ? category.children.find((child) => child.slug === raw.pattern) ?? null
+    : null;
   const [site, theme, tree] = await Promise.all([getSiteConfig(), getActiveTheme(), getCategories()]);
   const opts = site.pages.category;
-  // Categories like Mugs ("choose a pattern first") list no products themselves.
-  const { products, total, pageCount } = category.requiresChild
-    ? { products: [], total: 0, pageCount: 0 }
-    : await getProductsByCategory(category.productCategoryIds, p.page, {
+  const { products, total, pageCount } = await getProductsByCategory(selectedPattern ? [selectedPattern.id] : category.productCategoryIds, p.page, {
         availability: opts.showFilters ? p.availability : undefined,
         min: opts.showFilters ? p.min : undefined,
         max: opts.showFilters ? p.max : undefined,
@@ -54,6 +54,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       <ProductFilters
         action={path}
         values={filterValues(p)}
+        hidden={selectedPattern ? { pattern: selectedPattern.slug } : {}}
         layout={layout}
         show={{ availability: opts.showFilters, price: opts.showFilters, sort: opts.showSort }}
       />
@@ -67,7 +68,10 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
             <Link
               key={n}
-              href={withParams(path, p, { page: n })}
+              href={(() => {
+                const href = withParams(path, p, { page: n });
+                return selectedPattern ? `${href}${href.includes("?") ? "&" : "?"}pattern=${encodeURIComponent(selectedPattern.slug)}` : href;
+              })()}
               aria-current={n === p.page ? "page" : undefined}
               className={cn("flex size-touch items-center justify-center rounded-pill transition-colors", n === p.page ? "bg-ink text-canvas" : "bg-surface text-ink hover:bg-surface-strong")}
             >
@@ -112,8 +116,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         {header}
         <div className="container space-y-8">
           {breadcrumb}
-          {opts.patternPrompt && <p className="text-lg text-muted">{opts.patternPrompt}</p>}
-          <PatternPicker items={category.children} />
+          <PatternPicker items={category.children} parentSlug={category.slug} activeSlug={selectedPattern?.slug ?? ""} />
+          {filters("bar")}
+          {results}
         </div>
       </div>
     );
@@ -267,15 +272,25 @@ function CategoryTree({ tree, activeSlug }: { tree: CategoryDTO[]; activeSlug: s
 
 type PatternItem = { id: string; name: string; slug: string; image?: { url: string; alt: string }; description?: string };
 
-function PatternPicker({ items }: { items: PatternItem[] }) {
+function PatternPicker({ items, parentSlug, activeSlug }: { items: PatternItem[]; parentSlug: string; activeSlug: string }) {
   return (
     <nav aria-label="Filter by subcategory" className="-mx-5 overflow-x-auto px-5 pb-3 sm:mx-0 sm:px-0">
       <ul className="flex w-max min-w-full gap-2">
+        <li className="shrink-0">
+          <Link
+            href={`/category/${parentSlug}`}
+            aria-current={!activeSlug ? "page" : undefined}
+            className={cn("inline-flex min-h-11 items-center rounded-pill border px-4 text-sm font-medium transition-colors", !activeSlug ? "border-ink bg-ink text-canvas shadow-sm" : "border-line bg-paper/60 text-ink hover:border-ink hover:bg-surface")}
+          >
+            All styles
+          </Link>
+        </li>
         {items.map((c) => (
           <li key={c.id} className="shrink-0">
             <Link
-              href={`/category/${c.slug}`}
-              className="inline-flex min-h-11 items-center rounded-pill border border-line bg-paper/60 px-4 text-sm font-medium text-ink transition-colors hover:border-ink hover:bg-ink hover:text-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              href={`/category/${parentSlug}?pattern=${encodeURIComponent(c.slug)}`}
+              aria-current={c.slug === activeSlug ? "page" : undefined}
+              className={cn("inline-flex min-h-11 items-center rounded-pill border px-4 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink", c.slug === activeSlug ? "border-ink bg-ink text-canvas shadow-sm" : "border-line bg-paper/60 text-ink hover:border-ink hover:bg-surface")}
             >
               {c.name}
             </Link>
