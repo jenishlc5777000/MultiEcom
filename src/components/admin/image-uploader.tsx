@@ -8,6 +8,64 @@ import { cn } from "@/lib/utils";
 
 export type UploadedImage = { url: string; publicId: string; alt: string };
 
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const TARGET_BYTES = 1.5 * 1024 * 1024;
+const MAX_EDGE = 2000;
+
+/** Resize and encode uploads as WebP before sending them to storage. */
+async function compressImage(file: File): Promise<File> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error(`Couldn't read ${file.name}. Try saving it as JPG, PNG, WebP, or AVIF and uploading again.`);
+  }
+
+  try {
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Image compression isn't available in this browser.");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    let quality = 0.86;
+    let blob = await canvasBlob(canvas, quality);
+    while (blob.size > TARGET_BYTES && quality > 0.5) {
+      quality = Math.max(0.5, quality - 0.12);
+      blob = await canvasBlob(canvas, quality);
+    }
+
+    // If a detailed image is still large, scale it down in steps before the final encode.
+    while (blob.size > TARGET_BYTES && canvas.width > 1000) {
+      const nextWidth = Math.round(canvas.width * 0.8);
+      const nextHeight = Math.round(canvas.height * 0.8);
+      const smaller = document.createElement("canvas");
+      smaller.width = nextWidth;
+      smaller.height = nextHeight;
+      const smallerContext = smaller.getContext("2d");
+      if (!smallerContext) break;
+      smallerContext.drawImage(canvas, 0, 0, nextWidth, nextHeight);
+      canvas.width = nextWidth;
+      canvas.height = nextHeight;
+      context.drawImage(smaller, 0, 0);
+      blob = await canvasBlob(canvas, quality);
+    }
+
+    if (blob.size > MAX_UPLOAD_BYTES) throw new Error(`${file.name} is still over 5 MB after compression. Try a smaller image.`);
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "image"}.webp`, { type: "image/webp", lastModified: Date.now() });
+  } finally {
+    bitmap.close();
+  }
+}
+
+function canvasBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Image compression failed. Please try another image.")), "image/webp", quality);
+  });
+}
+
 type Props = {
   value: UploadedImage[];
   onChange: (images: UploadedImage[]) => void;
@@ -32,14 +90,20 @@ export function ImageUploader({ value, onChange, folder, path = [], max = 12, la
     setBusy(list.length);
     const added: UploadedImage[] = [];
     for (const file of list) {
-      const fd = new FormData();
-      fd.set("file", file);
-      fd.set("folder", folder);
-      fd.set("path", path.map((p) => p.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60)).filter(Boolean).join("/"));
-      const res = await uploadImageAction(fd);
-      if (res.ok) added.push({ url: res.data.url, publicId: res.data.publicId, alt: "" });
-      else setError(res.error);
-      setBusy((b) => b - 1);
+      try {
+        const compressed = await compressImage(file);
+        const fd = new FormData();
+        fd.set("file", compressed);
+        fd.set("folder", folder);
+        fd.set("path", path.map((p) => p.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60)).filter(Boolean).join("/"));
+        const res = await uploadImageAction(fd);
+        if (res.ok) added.push({ url: res.data.url, publicId: res.data.publicId, alt: "" });
+        else setError(res.error);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Image upload failed.");
+      } finally {
+        setBusy((b) => b - 1);
+      }
     }
     onChange([...value, ...added]);
     if (input.current) input.current.value = "";
@@ -96,7 +160,7 @@ export function ImageUploader({ value, onChange, folder, path = [], max = 12, la
         )}
       </ul>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple className="sr-only" tabIndex={-1} onChange={(e) => upload(e.target.files)} />
-      <p className="text-xs text-muted">JPG, PNG, WebP or AVIF, up to 5 MB each. The first photo is the cover.</p>
+      <p className="text-xs text-muted">JPG, PNG, WebP or AVIF. Images are automatically resized and compressed to WebP (usually under 1.5 MB). The first photo is the cover.</p>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
   );

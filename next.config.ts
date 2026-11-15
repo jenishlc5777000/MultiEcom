@@ -18,6 +18,9 @@ const IMAGE_HOSTS = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: { bodySizeLimit: "6mb" },
+  },
   images: {
     remotePatterns: IMAGE_HOSTS.map((hostname) => ({ protocol: "https" as const, hostname })),
     // Allows the local demo SVGs in /public/demo; served sandboxed with scripts disabled.

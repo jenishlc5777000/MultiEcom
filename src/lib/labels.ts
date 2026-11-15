@@ -77,7 +77,7 @@ export const LABELS = L({
   "product.outOfStock": { g: "product", d: "Out of stock" },
   "product.sold": { g: "product", d: "Sold" },
   "product.quantity": { g: "product", d: "Quantity" },
-  "product.glaze": { g: "product", d: "Glaze", hint: "Used when the category has no own name for this option" },
+  "product.glaze": { g: "product", d: "Color", hint: "Used when the category has no own name for this option" },
   "product.size": { g: "product", d: "Size", hint: "Used when the category has no own name for this option" },
   // Lists, filters & sorting
   "list.filterCategory": { g: "list", d: "Category" },

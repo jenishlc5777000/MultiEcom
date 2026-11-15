@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { PageHero } from "@/components/content/page-hero";
-import { ProcessSection } from "@/components/home/process-section";
 import { Reveal } from "@/components/motion/reveal";
 import { getCategories, getHomepageData } from "@/services/catalog.service";
 
@@ -14,12 +13,7 @@ export const metadata: Metadata = {
 
 export default async function AboutPage() {
   if (!(await getSiteConfig()).visibility.pages.about) notFound();
-  const [{ newest }, categories] = await Promise.all([getHomepageData(), getCategories()]);
-  const image = newest[0]?.image ?? categories.find((category) => category.image)?.image;
-  const ceramics = categories.find((category) => /ceramic|pottery/i.test(category.name) && category.image)?.image ?? categories.find((category) => category.image)?.image;
-  const crafts = categories.find((category) => /craft|art|paint|diy/i.test(category.name) && category.image)?.image
-    ?? categories.find((category) => category.image && category.image.url !== ceramics?.url)?.image
-    ?? newest.find((product) => product.image && product.image.url !== ceramics?.url)?.image;
+  const categories = await getCategories();
 
   return (
     <div className="space-y-24 md:space-y-36">
@@ -29,13 +23,11 @@ export default async function AboutPage() {
           title={<>Crafted with Passion. <em className="italic text-accent">Created for Joy.</em></>}
           lead="At Nibbea, we believe that creativity has the power to make everyday moments extraordinary."
         />
-        {image && (
-          <div className="container">
-            <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-surface-strong md:aspect-[21/9]">
-              <Image src={image.url} alt={image.alt} fill priority sizes="100vw" className="object-cover" />
-            </div>
+        <div className="container">
+          <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-surface-strong md:aspect-[21/9]">
+            <Image src="/about-hero.png" alt="Colorful ceramics and creative craft pieces arranged in a sunny studio" fill priority sizes="100vw" className="object-cover" />
           </div>
-        )}
+        </div>
       </div>
 
       <section className="container grid gap-10 lg:grid-cols-12">
@@ -52,6 +44,7 @@ export default async function AboutPage() {
         </Reveal>
       </section>
 
+      {/* Category image row hidden on request.
       {(ceramics || crafts) && (
         <section className="container grid grid-cols-2 gap-4 md:gap-8" aria-label="Ceramics and arts and crafts">
           {[
@@ -66,7 +59,7 @@ export default async function AboutPage() {
             </Reveal>
           ) : <div key={label} aria-hidden />)}
         </section>
-      )}
+      )} */}
 
       <section className="container grid gap-10 lg:grid-cols-12">
         <Reveal className="lg:col-span-4">
@@ -94,7 +87,7 @@ export default async function AboutPage() {
         </Reveal>
       </section>
 
-      <ProcessSection />
+      {/* <ProcessSection /> */}
     </div>
   );
 }

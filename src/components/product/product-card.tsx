@@ -80,7 +80,7 @@ export function ProductCard({ product, priority = false, sizes }: { product: Pro
         </div>
         <div className="flex min-h-5 items-center justify-between gap-3">
           {product.swatches.length > 0 ? (
-            <div className="product-card-swatches flex items-center gap-1.5" aria-label={`Glazes: ${product.swatches.map((s) => s.name).join(", ")}`}>
+            <div className="product-card-swatches flex items-center gap-1.5" aria-label={`Colors: ${product.swatches.map((s) => s.name).join(", ")}`}>
               {product.swatches.slice(0, MAX_SWATCHES).map((s) => (
                 <span key={s.name} title={s.name} className="size-3.5 rounded-full border border-ink/15" style={{ backgroundColor: s.hex ?? "#ccc" }} />
               ))}

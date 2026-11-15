@@ -307,8 +307,8 @@ export function GlazeManager({ glazes }: { glazes: GlazeRow[] }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-        <h2 className="font-sans text-[15px] font-semibold">Glazes</h2>
-        <Button size="sm" variant="secondary" onClick={() => setEditing("new")} disabled={editing === "new"}><Plus /> Add glaze</Button>
+        <h2 className="font-sans text-[15px] font-semibold">Colors</h2>
+        <Button size="sm" variant="secondary" onClick={() => setEditing("new")} disabled={editing === "new"}><Plus /> Add color</Button>
       </div>
       {editing === "new" && <GlazeEditor onDone={() => setEditing(null)} />}
       <ul>

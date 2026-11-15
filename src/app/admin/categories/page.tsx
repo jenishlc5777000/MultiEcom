@@ -10,7 +10,7 @@ export default async function CategoriesAdminPage() {
     <>
       <PageHeader
         title="Categories"
-        description="Organise the shop as Category → Subcategory → Products. They drive the shop menu and category pages. Glazes and sizes are the options customers choose between on a product."
+        description="Organise the shop as Category → Subcategory → Products. They drive the shop menu and category pages. Colors and sizes are the options customers choose between on a product."
       />
       <section className="rounded-lg border border-line bg-paper/60">
         <CategoryManager categories={categories} glazes={glazes.map((g) => ({ id: g.id, name: g.name }))} sizes={sizes.map((z) => ({ id: z.id, name: z.label }))} />

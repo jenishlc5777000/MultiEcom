@@ -33,7 +33,7 @@ const newKey = () => `v${Date.now()}-${keySeed++}`;
 const blankVariant = (key = newKey()): Variant => ({ key, id: "", glaze: "", size: "", sku: "", price: 0, compareAtPrice: "", stock: 0, isActive: true, image: null });
 
 const EMPTY: Omit<ProductFormValues, "id"> = {
-  name: "", slug: "", type: "CERAMIC", status: "DRAFT", availability: "READY_STOCK", category: "", isUnique: false, leadTimeDays: "",
+  name: "", slug: "", type: "" as ProductFormValues["type"], status: "DRAFT", availability: "READY_STOCK", category: "", isUnique: false, leadTimeDays: "",
   patternName: "", description: "", capacity: "", dimensions: "", care: "", kitContents: [], tags: [], images: [], variants: [], attributes: {},
 };
 
@@ -148,7 +148,8 @@ export function ProductForm({
                 />
               </Field>
               <Field label="Type" htmlFor="type">
-                <Select id="type" value={v.type} onChange={(e) => set("type", e.target.value as typeof v.type)}>
+                <Select id="type" required value={v.type} onChange={(e) => set("type", e.target.value as typeof v.type)}>
+                  <option value="">Choose a product type</option>
                   {PRODUCT_TYPES.map((t) => <option key={t} value={t}>{LABEL[t]}</option>)}
                 </Select>
               </Field>
@@ -176,8 +177,8 @@ export function ProductForm({
               </Button>
             </div>
             <p className="mb-4 text-sm text-muted">
-              One row per glaze and size combination. Leave glaze or size empty if the product doesn&apos;t vary by it. Prices are in rupees.
-              {glazes.length === 0 && <> <Link href="/admin/categories#glazes" className="underline">Add glazes</Link> to offer colour options.</>}
+              One row per color and size combination. Leave color or size empty if the product doesn&apos;t vary by it. Prices are in rupees.
+              {glazes.length === 0 && <> <Link href="/admin/categories#glazes" className="underline">Add colors</Link> to offer colour options.</>}
             </p>
             <ul className="space-y-3">
               {v.variants.map((x, i) => (
@@ -198,7 +199,7 @@ export function ProductForm({
                     </button>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {shown("glaze") && <Field label="Glaze" htmlFor={`g-${x.key}`}>
+                    {shown("glaze") && <Field label="Color" htmlFor={`g-${x.key}`}>
                       <Select id={`g-${x.key}`} value={x.glaze} onChange={(e) => setVariant(x.key, { glaze: e.target.value })}>
                         <option value="">No glaze option</option>
                         {glazeChoices(x).map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}

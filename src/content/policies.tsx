@@ -105,39 +105,51 @@ export function getPolicy(slug: PolicySlug, s: StoreFacts): Policy {
 
     case "returns":
       return {
-        title: "Returns & refunds",
-        lead: `You can request a return within ${s.returnWindowDays} days of delivery.`,
+        title: "Returns & Refunds",
+        lead: "At Nibbea, every product is thoughtfully created, carefully inspected, and securely packed. Your satisfaction matters to us, and we’re here to help if something isn’t right with your order.",
         sections: [
           {
             id: "eligibility",
-            heading: "What can be returned",
+            heading: "What Can Be Returned",
             body: (
               <ul>
-                <li>Pieces that arrive <strong>damaged</strong>, are the <strong>wrong item</strong>, or are <strong>not as described</strong>.</li>
-                <li>Requests must be made within <strong>{s.returnWindowDays} days</strong> of delivery.</li>
-                <li>
-                  Change-of-mind returns: <Fill>say whether you accept them, and under what conditions</Fill>.
-                </li>
-                <li>
-                  Made-to-order and custom pieces: <Fill>say whether these can be returned</Fill>.
-                </li>
+                <li>Your product arrives damaged or defective.</li>
+                <li>You receive an incorrect product.</li>
+                <li>Your product is significantly different from its description.</li>
               </ul>
             ),
           },
           {
+            id: "conditions",
+            heading: "Return Conditions",
+            body: (
+              <>
+                <ul>
+                  <li>Items should be unused and in their original condition, wherever possible.</li>
+                  <li>All supplied components and accessories should be included.</li>
+                </ul>
+                <p>These conditions do not affect your applicable statutory consumer rights.</p>
+              </>
+            ),
+          },
+          {
             id: "handmade",
-            heading: "A note on handmade pieces",
-            body: <p>Small variations in glaze colour, speckling, drips and form are a natural part of handmade ceramics, and they are not defects. Product photos show a representative piece.</p>,
+            heading: "A Note on Our Creations",
+            body: <p>Some of our products are handcrafted or individually produced, making each piece unique. Minor variations in colour, texture, shape, dimensions, and finish may naturally occur. Such variations are not considered defects unless they materially differ from the product description or agreed specifications.</p>,
           },
           {
             id: "how",
-            heading: "How to request a return",
+            heading: "How to Request a Return",
             body: (
-              <ol>
-                <li>Email {contact(s)} with your order number (it&apos;s on your profile page and in your confirmation email).</li>
-                <li>Tell us which items and why. For damaged or wrong items, add photos of the piece and of the outer box.</li>
-                <li>We&apos;ll reply with next steps, usually within <Fill>number</Fill> working days.</li>
-              </ol>
+              <>
+                <ol>
+                  <li>Contact us through our <Link href="/contact">Contact Us page</Link> within 7 days of delivery.</li>
+                  <li>Share your order number, product details, and reason for the request.</li>
+                  <li>For damaged, defective, or incorrect products, include clear photographs of the item and packaging. An unboxing video is helpful if available, but not mandatory.</li>
+                  <li>Our team aims to respond within 2 working days with further instructions.</li>
+                </ol>
+                <p>Please do not send products back without receiving return instructions.</p>
+              </>
             ),
           },
           {
@@ -145,14 +157,23 @@ export function getPolicy(slug: PolicySlug, s: StoreFacts): Policy {
             heading: "Refunds",
             body: (
               <>
-                <p>Approved refunds go back to your original payment method through Razorpay. Banks usually take 5 to 7 working days to show the amount.</p>
-                <p>
-                  Return shipping costs: <Fill>say who pays for return shipping and in which cases</Fill>.
-                </p>
+                <p>Once your request is reviewed and approved, we will arrange an appropriate resolution, which may include a replacement, return, or refund.</p>
+                <ul>
+                  <li>Approved refunds will be issued to the original payment method through our payment provider, where supported.</li>
+                  <li>Refunds are generally initiated within 5–7 working days after approval or completion of any required return inspection.</li>
+                  <li>Your bank or payment provider may require additional time to reflect the amount.</li>
+                </ul>
+                <p>If a replacement is unavailable, we will offer an appropriate refund.</p>
               </>
             ),
           },
-          { id: "contact", heading: "Questions", body: <p>Write to {contact(s)} with your order number.</p> },
+          {
+            id: "shipping",
+            heading: "Return Shipping",
+            body: <p>For verified damaged, defective, or incorrect products, Nibbea will arrange return shipping or cover reasonable approved return shipping costs. Customers should contact us before arranging any return shipment.</p>,
+          },
+          { id: "contact", heading: "Questions?", body: <p>We’re always happy to help. For return requests, refund updates, or order-related questions, please reach out through our <Link href="/contact">Contact Us page</Link>.</p> },
+          { id: "signoff", heading: "", body: <p><strong>Nibbea — Crafted with Care. Delivered with Love.</strong></p> },
         ],
       };
 
