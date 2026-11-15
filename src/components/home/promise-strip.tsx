@@ -14,8 +14,8 @@ export async function PromiseStrip({ shippingFlatFee, freeShippingThreshold, ret
     shippingFlatFee === 0
       ? `${t("trust.freeShippingAll")}.`
       : freeShippingThreshold > 0
-        ? `${formatINR(shippingFlatFee)} flat shipping, free on orders over ${formatINR(freeShippingThreshold)}.`
-        : `${formatINR(shippingFlatFee)} flat shipping across India.`;
+        ? `${formatINR(shippingFlatFee)} per order; free on orders of ${formatINR(freeShippingThreshold)} or more.`
+        : `${formatINR(shippingFlatFee)} per order across India.`;
 
   const items = [
     { icon: Truck, title: t("trust.packed"), body: shipping, href: "/policies/shipping" },

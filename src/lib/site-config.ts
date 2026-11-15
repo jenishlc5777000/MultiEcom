@@ -302,8 +302,8 @@ const contentSchema = z.object({
       categoriesTitle: text(80, "Find your *piece*"),
       readyEyebrow: text(60, "Ready to ship"),
       readyTitle: text(80, "In the studio, ready to go"),
-      newEyebrow: text(60, "New from the studio"),
-      newTitle: text(80, "Just out of the *kiln*"),
+      newEyebrow: text(60, "FRESH FROM NIBBEA"),
+      newTitle: text(80, "Our Latest Creations"),
     })
     .default({}),
   story: z
@@ -312,6 +312,7 @@ const contentSchema = z.object({
       title: text(120, "From our wheel / to your *table*"),
       body: text(1200, "Because every piece is made by hand, no two are exactly alike: glazes pool, drip and break differently in every firing."),
       ctaLabel: text(40, "Read our story"),
+      image: z.object({ url: z.string().max(500), publicId: z.string().max(300), alt: z.string().max(200).default("") }).nullable().default(null),
     })
     .default({}),
   process: z

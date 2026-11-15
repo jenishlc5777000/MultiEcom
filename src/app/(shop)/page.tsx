@@ -44,7 +44,7 @@ export default async function HomePage({ searchParams }: Props) {
     banner,
     heroImage: pictures[0] ?? banner?.image ?? newest[0]?.image ?? categories[0]?.image,
     heroSlides: hero.rotate && pictures.length > 1 ? pictures : undefined,
-    storyImage: newest[1]?.image ?? categories[1]?.image ?? newest[0]?.image,
+    storyImage: site.content.story.image ?? undefined,
     gallery: [...pictures, ...[...newest, ...readyStock].flatMap((p) => (p.image ? [p.image] : []))].slice(0, 6),
     featured: hero.featured === "hide" ? undefined : (picked ?? readyStock[0] ?? newest[0]),
     // Real catalogue numbers only; anything that is zero is left out.

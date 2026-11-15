@@ -2,7 +2,6 @@ import { RichTitle } from "@/components/content/rich-title";
 import { CategoryShowcase } from "@/components/home/category-showcase";
 import { ClosingCta } from "@/components/home/closing-cta";
 import { Hero } from "@/components/home/hero";
-import { ProcessSection } from "@/components/home/process-section";
 import { PromiseStrip } from "@/components/home/promise-strip";
 import { SectionHeading } from "@/components/home/section-heading";
 import { StorySection } from "@/components/home/story-section";
@@ -29,7 +28,6 @@ export function LandingHome(d: HomeData) {
     </section>
   );
   const story = on.story && <StorySection image={d.storyImage} content={d.site.content.story} />;
-  const process = on.process && <ProcessSection content={d.site.content.process} />;
 
   return (
     <div className="space-y-24 md:space-y-36">
@@ -47,13 +45,11 @@ export function LandingHome(d: HomeData) {
           {newArrivals}
           {readyCarousel}
           {story}
-          {process}
         </>
       ) : (
         <>
           {readyCarousel}
           {story}
-          {process}
           {newArrivals}
         </>
       )}

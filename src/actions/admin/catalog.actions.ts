@@ -22,6 +22,8 @@ import { ownerAction, UserFacingError } from "./_helpers";
 
 // Storefront paths that show catalogue data: they must refresh after any edit.
 const STOREFRONT = ["/", "/category", "/search"];
+// Product forms receive their category options from the server on page load.
+const PRODUCT_FORMS = ["/admin/products", "/admin/products/new", "/admin/products/[id]"];
 const optionalId = z.union([objectId, z.null()]);
 
 /* Products */
@@ -78,12 +80,13 @@ export async function uploadImageAction(formData: FormData): Promise<ActionResul
 export async function saveCategoryAction(id: string | null, raw: unknown) {
   return ownerAction(z.object({ id: optionalId, input: categoryInput }), { id, input: raw }, ({ id, input }) => saveCategory(id, input), [
     "/admin/categories",
+    ...PRODUCT_FORMS,
     ...STOREFRONT,
   ]);
 }
 
 export async function deleteCategoryAction(id: string) {
-  return ownerAction(z.object({ id: objectId }), { id }, ({ id }) => deleteCategory(id), ["/admin/categories", ...STOREFRONT]);
+  return ownerAction(z.object({ id: objectId }), { id }, ({ id }) => deleteCategory(id), ["/admin/categories", ...PRODUCT_FORMS, ...STOREFRONT]);
 }
 
 export async function saveGlazeAction(id: string | null, raw: unknown) {

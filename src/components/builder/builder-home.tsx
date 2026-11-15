@@ -6,7 +6,6 @@ import { CategoryShowcase } from "@/components/home/category-showcase";
 import { ClosingCta } from "@/components/home/closing-cta";
 import { Hero } from "@/components/home/hero";
 import type { HomeData } from "@/components/home/modes/types";
-import { ProcessSection } from "@/components/home/process-section";
 import { PromiseStrip } from "@/components/home/promise-strip";
 import { SectionHeading } from "@/components/home/section-heading";
 import { StorySection } from "@/components/home/story-section";
@@ -34,7 +33,7 @@ const isBuiltin = (t: string) => (BUILTIN_TYPES as readonly string[]).includes(t
 
 /** The home page as built in Studio → Sections. */
 export async function BuilderHome({ data, sections }: { data: HomeData; sections: Section[] }) {
-  const visible = sections.filter((s) => s.enabled);
+  const visible = sections.filter((s) => s.enabled && s.type !== "process");
   const rendered = await Promise.all(visible.map((s) => renderSection(s, data)));
   return (
     <div>
@@ -101,8 +100,6 @@ async function renderSection(s: Section, d: HomeData): Promise<React.ReactNode> 
       ) : null;
     case "story":
       return <StorySection image={d.storyImage} content={d.site.content.story} />;
-    case "process":
-      return <ProcessSection content={d.site.content.process} />;
     case "promise":
       return <PromiseStrip {...d.store} />;
     case "closing":

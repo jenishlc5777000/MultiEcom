@@ -134,6 +134,10 @@ export function ContentTab({ initial, products = [] }: { initial: SiteConfig["co
 
       <Panel id="content-story" title="Our story">
         <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <ImageUploader folder="banners" path={["story"]} max={1} label="Story photo" value={c.story.image ? [c.story.image] : []} onChange={(images) => story({ image: images[0] ?? null })} />
+            <p className="mt-2 text-xs text-muted">This photo stays fixed on the homepage until you replace it here.</p>
+          </div>
           <Field label="Small line" htmlFor="st1">{input("st1", c.story.eyebrow, (x) => story({ eyebrow: x }), 60)}</Field>
           <Field label="Title" htmlFor="st2" hint={TIP}>{input("st2", c.story.title, (x) => story({ title: x }))}</Field>
           <Field label="Story text" htmlFor="st3" hint="Leave a blank line between paragraphs" className="sm:col-span-2">

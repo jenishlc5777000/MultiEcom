@@ -77,9 +77,11 @@ export default async function PolicyPage({ params }: Props) {
               </section>
             </Reveal>
           ))}
-          <p className="mt-16 border-t border-line pt-6 text-sm text-muted">
-            Bracketed items are placeholders. Fill them in and have this page reviewed before launch.
-          </p>
+          {slug !== "shipping" && (
+            <p className="mt-16 border-t border-line pt-6 text-sm text-muted">
+              Bracketed items are placeholders. Fill them in and have this page reviewed before launch.
+            </p>
+          )}
         </article>
       </div>
     </div>

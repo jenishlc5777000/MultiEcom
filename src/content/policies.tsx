@@ -30,64 +30,75 @@ export function getPolicy(slug: PolicySlug, s: StoreFacts): Policy {
   switch (slug) {
     case "shipping":
       return {
-        title: "Shipping",
-        lead: "How and when your order reaches you.",
+        title: "Shipping Policy",
+        lead: "How and when your Nibbea creations reach you.",
         sections: [
           {
             id: "charges",
-            heading: "Shipping charges",
+            heading: "1. Shipping charges",
             body: (
-              <ul>
+              <>
+                <p>We take care to prepare, pack, and deliver every order with care, whether you choose a ceramic creation or an arts &amp; crafts kit.</p>
+                <ul>
                 {s.shippingFlatFee === 0 ? (
                   <li>Shipping is free on every order.</li>
                 ) : (
                   <li>
-                    A flat shipping fee of <strong>{formatINR(s.shippingFlatFee)}</strong> applies to each order
+                    Standard shipping is <strong>{formatINR(s.shippingFlatFee)} per order</strong>
                     {s.freeShippingThreshold > 0 && (
-                      <>, and shipping is <strong>free on orders of {formatINR(s.freeShippingThreshold)} or more</strong></>
+                      <>. Shipping is free on orders of <strong>{formatINR(s.freeShippingThreshold)} or more</strong></>
                     )}
-                    .
                   </li>
                 )}
-                <li>The exact shipping amount is shown at checkout before you pay.</li>
-              </ul>
+                  <li>The applicable shipping charge is shown at checkout before payment.</li>
+                  <li>Available shipping offers will be shown on our website.</li>
+                </ul>
+              </>
             ),
           },
           {
             id: "dispatch",
-            heading: "When we dispatch",
+            heading: "2. Order processing & dispatch",
             body: (
               <>
-                <p>
-                  <strong>Ready-to-ship pieces</strong> are usually dispatched within <Fill>number</Fill> working days of payment.
-                </p>
-                <p>
-                  <strong>Made-to-order pieces</strong> are made for you after you order. The expected time is shown on each product page, and we dispatch as soon as your piece is out of the kiln and inspected.
-                </p>
+                <p>Dispatch times depend on the products in your order.</p>
+                <p><strong>Ready-to-ship products:</strong> Ready-to-ship ceramics and arts &amp; crafts kits are prepared for dispatch after successful payment confirmation. Expected dispatch time: <strong>2 days</strong>.</p>
+                <p><strong>Made-to-order ceramics:</strong> Some creations are made after an order is placed. Production takes an estimated <strong>7–10 days</strong> and includes shaping, drying, finishing, firing, and quality checks. Once ready, the piece is securely packed and dispatched.</p>
+                <p>Production time is separate from courier delivery time. Handmade pieces may occasionally need additional time; we&apos;ll contact you if there is a significant delay.</p>
               </>
             ),
           },
           {
             id: "delivery",
-            heading: "Delivery and tracking",
+            heading: "3. Delivery & order tracking",
             body: (
               <>
-                <p>
-                  We ship across India with <Fill>courier partner(s)</Fill>. Delivery usually takes <Fill>number</Fill> to <Fill>number</Fill> working days after dispatch, depending on your PIN code.
-                </p>
-                <p>When your order ships, its tracking link appears on your profile page.</p>
+                <p>We ship to serviceable locations across India. Estimated delivery is <strong>5–7 days after dispatch</strong>. Timing can vary by destination PIN code, courier service, weather, and other logistics.</p>
+                <p>After dispatch, tracking details will be shared through your Nibbea account or the contact details on your order, depending on the available tracking service.</p>
+                <p>Please enter an accurate shipping address, PIN code, and contact number when ordering.</p>
               </>
             ),
           },
           {
             id: "packaging",
-            heading: "Packaging",
-            body: <p>Ceramics are fragile, so every order is packed to protect it in transit. If something arrives damaged, see our <Link href="/policies/returns">returns policy</Link>.</p>,
+            heading: "4. Safe & secure packaging",
+            body: (
+              <>
+                <p>Every product is packed to help it reach you in excellent condition. Ceramics are protected with materials suited to fragile items. Craft kits, figurines, paints, and brushes are securely arranged to protect their contents.</p>
+                <h3>If your order arrives damaged</h3>
+                <p>If you receive a broken, damaged, or incorrect product, contact our support team promptly with your order number, clear photos of the product and outer packaging, and an unboxing video if available. We&apos;ll review the issue under our <Link href="/policies/returns">Returns &amp; Refunds Policy</Link>.</p>
+              </>
+            ),
           },
           {
             id: "international",
-            heading: "International orders",
-            body: <p><Fill>Say whether you ship outside India, and if so where and at what cost.</Fill></p>,
+            heading: "5. International shipping",
+            body: <p>Our online shipping policy currently covers deliveries within India. For orders outside India, please contact us before ordering. International delivery is subject to confirmation.</p>,
+          },
+          {
+            id: "contact",
+            heading: "Need assistance?",
+            body: <p>Have a question about shipping, delivery, or your order? We&apos;re happy to help. <Link href="/contact">Visit our Contact Us page</Link> for assistance.</p>,
           },
         ],
       };
