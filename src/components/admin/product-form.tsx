@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { ChevronDown, Copy, ImageIcon, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { saveProductAction } from "@/actions/admin/catalog.actions";
 import { Button } from "@/components/ui/button";
 import { AVAILABILITY, PRODUCT_STATUS } from "@/lib/constants";
@@ -33,7 +33,7 @@ const kindOf = (root?: { name: string }) => (root && /craft|kit|\bart\b/i.test(r
 let keySeed = 0;
 const newKey = () => `v${Date.now()}-${keySeed++}`;
 
-const blankVariant = (key = newKey()): Variant => ({ key, id: "", glaze: "", size: "", sku: "", price: 0, compareAtPrice: "", stock: 0, isActive: true, image: null });
+const blankVariant = (key = newKey()): Variant => ({ key, id: "", glaze: "", size: "", sku: "", price: 0, compareAtPrice: "", stock: 0, isActive: true, image: null, images: [] });
 
 const EMPTY: Omit<ProductFormValues, "id"> = {
   name: "", slug: "", type: "" as ProductFormValues["type"], status: "DRAFT", availability: "READY_STOCK", category: "", isUnique: false, leadTimeDays: "",
@@ -99,7 +99,50 @@ export function ProductForm({
     setSaved(false);
     setV((s) => ({ ...s, [k]: val }));
   };
-  const setVariant = (key: string, patch: Partial<Variant>) => set("variants", v.variants.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+  // Functional update: photo uploads finish later and must not overwrite other edits.
+  const setVariant = (key: string, patch: Partial<Variant>) => {
+    setSaved(false);
+    setV((s) => ({ ...s, variants: s.variants.map((x) => (x.key === key ? { ...x, ...patch } : x)) }));
+  };
+
+  // Variants are a list of collapsible rows: a summary line, opened to edit.
+  // One variant: open. Several: all closed until clicked.
+  const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set(v.variants.length === 1 ? [v.variants[0]!.key] : []));
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const variantRefs = useRef(new Map<string, HTMLLIElement>());
+  useEffect(() => {
+    if (!focusKey) return;
+    variantRefs.current.get(focusKey)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setFocusKey(null);
+  }, [focusKey]);
+  const toggleVariant = (key: string) =>
+    setOpenKeys((o) => {
+      const n = new Set(o);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
+      return n;
+    });
+  /** Add a variant (optionally copying colour, photos and prices, right below the source) and open it. */
+  const addVariant = (from?: Variant) => {
+    const row: Variant = {
+      ...blankVariant(),
+      ...(from ? { glaze: from.glaze, price: from.price, compareAtPrice: from.compareAtPrice, stock: from.stock, images: from.images, image: from.image } : {}),
+    };
+    setSaved(false);
+    setV((s) => {
+      const at = from ? s.variants.findIndex((x) => x.key === from.key) + 1 : s.variants.length;
+      const next = [...s.variants];
+      next.splice(at, 0, row);
+      return { ...s, variants: next };
+    });
+    setOpenKeys(new Set([row.key]));
+    setFocusKey(row.key);
+  };
+  const removeVariant = (key: string) => {
+    setSaved(false);
+    setV((s) => ({ ...s, variants: s.variants.filter((y) => y.key !== key) }));
+  };
+  const variantPhoto = (x: Variant) => x.images[0] ?? x.image ?? null;
 
   const glazeName = useMemo(() => new Map(glazes.map((g) => [g.id, g.name])), [glazes]);
   const sizeName = useMemo(() => new Map(sizes.map((s) => [s.id, s.name])), [sizes]);
@@ -149,7 +192,7 @@ export function ProductForm({
         </p>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px] 2xl:grid-cols-[1fr_400px]">
         <div className="space-y-6">
           <section className={section} aria-labelledby="sec-basics">
             <h2 id="sec-basics" className={h2}>Basics</h2>
@@ -205,75 +248,145 @@ export function ProductForm({
           </section>
 
           <section className={section} aria-labelledby="sec-variants">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <h2 id="sec-variants" className="font-sans text-[15px] font-semibold">Variants, prices &amp; stock</h2>
-              <Button type="button" size="sm" variant="secondary" onClick={() => set("variants", [...v.variants, blankVariant()])} disabled={v.isUnique && v.variants.length >= 1}>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h2 id="sec-variants" className="font-sans text-[15px] font-semibold">Variants, prices &amp; stock <span className="font-normal text-muted">({v.variants.length})</span></h2>
+              <Button type="button" size="sm" variant="secondary" onClick={() => addVariant()} disabled={v.isUnique && v.variants.length >= 1}>
                 <Plus /> Add variant
               </Button>
             </div>
             <p className="mb-4 text-sm text-muted">
-              One row per color and size combination. Leave color or size empty if the product doesn&apos;t vary by it. Prices are in rupees.
-              {glazes.length === 0 && <> <Link href="/admin/categories#glazes" className="underline">Add colors</Link> to offer colour options.</>}
+              One variant per colour and size, each with its own price, stock and photos. Click a variant to open it. Use <b>Add another size</b> inside a variant to copy its colour and photos with a new size and price.
+              {glazes.length === 0 && <> <Link href="/admin/categories#glazes" className="underline">Add colours</Link> to offer colour options.</>}
             </p>
-            <ul className="space-y-3">
-              {v.variants.map((x, i) => (
-                <li key={x.key} className={cn("rounded-md border border-line bg-canvas/60 p-4", !x.isActive && "opacity-60")}>
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-sm font-medium">
-                      Variant {i + 1}
-                      {(x.glaze || x.size) && <span className="font-normal text-muted"> · {[glazeName.get(x.glaze), sizeName.get(x.size)].filter(Boolean).join(" · ")}</span>}
-                    </p>
+            <ul className="space-y-2">
+              {v.variants.map((x, i) => {
+                const open = openKeys.has(x.key);
+                const photo = variantPhoto(x);
+                const hex = glazes.find((g) => g.id === x.glaze)?.hex;
+                const title = [glazeName.get(x.glaze), sizeName.get(x.size)].filter(Boolean).join(" · ") || "No colour or size";
+                return (
+                  <li
+                    key={x.key}
+                    ref={(el) => {
+                      if (el) variantRefs.current.set(x.key, el);
+                      else variantRefs.current.delete(x.key);
+                    }}
+                    className={cn("overflow-hidden rounded-md border bg-canvas/60 transition-colors", open ? "border-ink/30" : "border-line", !x.isActive && "opacity-70")}
+                  >
+                    {/* Summary row: click to open / close */}
                     <button
                       type="button"
-                      aria-label={`Remove variant ${i + 1}`}
-                      disabled={v.variants.length === 1}
-                      onClick={() => set("variants", v.variants.filter((y) => y.key !== x.key))}
-                      className="inline-flex size-9 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-danger disabled:opacity-30"
+                      onClick={() => toggleVariant(x.key)}
+                      aria-expanded={open}
+                      aria-controls={`variant-${x.key}`}
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-surface/60 sm:px-4"
                     >
-                      <Trash2 className="size-4" />
+                      <span className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-surface">
+                        {photo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={photo.url} alt="" className="size-full object-cover" />
+                        ) : hex ? (
+                          <span className="size-6 rounded-full border border-ink/15" style={{ backgroundColor: hex }} />
+                        ) : (
+                          <ImageIcon className="size-4 text-muted" aria-hidden />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">
+                          <span className="text-muted">Variant {i + 1} · </span>
+                          {title}
+                        </span>
+                        <span className="block truncate text-xs text-muted">
+                          {x.price ? `₹${x.price}` : "No price yet"}
+                          {x.compareAtPrice ? <> · <s>₹{x.compareAtPrice}</s></> : null}
+                          {" · "}
+                          {v.availability === "MADE_TO_ORDER" ? "made to order" : `${x.stock} in stock`}
+                          {x.images.length > 0 && ` · ${x.images.length} photo${x.images.length > 1 ? "s" : ""}`}
+                          {!x.isActive && " · hidden"}
+                        </span>
+                      </span>
+                      <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform", open && "rotate-180")} aria-hidden />
                     </button>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {shown("glaze") && <Field label="Color" htmlFor={`g-${x.key}`}>
-                      <Select id={`g-${x.key}`} value={x.glaze} onChange={(e) => setVariant(x.key, { glaze: e.target.value })}>
-                        <option value="">No glaze option</option>
-                        {glazeChoices(x).map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                      </Select>
-                    </Field>}
-                    {shown("size") && <Field label="Size" htmlFor={`s-${x.key}`}>
-                      <Select id={`s-${x.key}`} value={x.size} onChange={(e) => setVariant(x.key, { size: e.target.value })}>
-                        <option value="">No size option</option>
-                        {sizeChoices(x).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </Select>
-                    </Field>}
-                    <Field label="SKU" htmlFor={`sku-${x.key}`} hint={x.sku ? undefined : `Auto: ${suggestSku(x) || "set a slug"}`}>
-                      <TextInput id={`sku-${x.key}`} value={x.sku} onChange={(e) => setVariant(x.key, { sku: e.target.value.toUpperCase() })} />
-                    </Field>
-                    <Field label="Price (₹)" htmlFor={`p-${x.key}`}>
-                      <TextInput id={`p-${x.key}`} type="number" inputMode="decimal" min={0} step="0.01" required value={x.price || ""} onChange={(e) => setVariant(x.key, { price: Number(e.target.value) })} />
-                    </Field>
-                    <Field label="Compare-at price (₹)" htmlFor={`c-${x.key}`} hint="Optional. Shows as a sale.">
-                      <TextInput id={`c-${x.key}`} type="number" inputMode="decimal" min={0} step="0.01" value={x.compareAtPrice} onChange={(e) => setVariant(x.key, { compareAtPrice: e.target.value === "" ? "" : Number(e.target.value) })} />
-                    </Field>
-                    <Field label="Stock" htmlFor={`st-${x.key}`} hint={v.availability === "MADE_TO_ORDER" ? "Not limited for made-to-order" : undefined}>
-                      <TextInput id={`st-${x.key}`} type="number" inputMode="numeric" min={0} step={1} value={x.stock} onChange={(e) => setVariant(x.key, { stock: Math.max(0, Math.floor(Number(e.target.value))) })} />
-                    </Field>
-                    <Field label="Variant photo" htmlFor={`img-${x.key}`} className="sm:col-span-2">
-                      <Select
-                        id={`img-${x.key}`}
-                        value={x.image?.url ?? ""}
-                        onChange={(e) => setVariant(x.key, { image: v.images.find((im) => im.url === e.target.value) ?? null })}
-                      >
-                        <option value="">Use the product cover</option>
-                        {v.images.map((im, j) => <option key={im.url} value={im.url}>Photo {j + 1}{im.alt ? `: ${im.alt}` : ""}</option>)}
-                      </Select>
-                    </Field>
-                    <div className="flex items-end pb-2">
-                      <Toggle label="Available" checked={x.isActive} onChange={(on) => setVariant(x.key, { isActive: on })} />
-                    </div>
-                  </div>
-                </li>
-              ))}
+
+                    {open && (
+                      <div id={`variant-${x.key}`} className="space-y-4 border-t border-line px-3 pb-4 pt-4 sm:px-4">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {shown("glaze") && (
+                            <Field label="Colour" htmlFor={`g-${x.key}`}>
+                              <Select id={`g-${x.key}`} value={x.glaze} onChange={(e) => setVariant(x.key, { glaze: e.target.value })}>
+                                <option value="">No colour option</option>
+                                {glazeChoices(x).map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                              </Select>
+                            </Field>
+                          )}
+                          {shown("size") && (
+                            <Field label="Size" htmlFor={`s-${x.key}`}>
+                              <Select id={`s-${x.key}`} value={x.size} onChange={(e) => setVariant(x.key, { size: e.target.value })}>
+                                <option value="">No size option</option>
+                                {sizeChoices(x).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                              </Select>
+                            </Field>
+                          )}
+                          <Field label="SKU" htmlFor={`sku-${x.key}`} hint={x.sku ? undefined : `Auto: ${suggestSku(x) || "set a slug"}`}>
+                            <TextInput id={`sku-${x.key}`} value={x.sku} onChange={(e) => setVariant(x.key, { sku: e.target.value.toUpperCase() })} />
+                          </Field>
+                          <Field label="Price (₹)" htmlFor={`p-${x.key}`} hint="Price for this colour and size">
+                            <TextInput id={`p-${x.key}`} type="number" inputMode="decimal" min={0} step="0.01" required value={x.price || ""} onChange={(e) => setVariant(x.key, { price: Number(e.target.value) })} />
+                          </Field>
+                          <Field label="Compare-at price (₹)" htmlFor={`c-${x.key}`} hint="Optional. Shows as a sale.">
+                            <TextInput id={`c-${x.key}`} type="number" inputMode="decimal" min={0} step="0.01" value={x.compareAtPrice} onChange={(e) => setVariant(x.key, { compareAtPrice: e.target.value === "" ? "" : Number(e.target.value) })} />
+                          </Field>
+                          <Field label="Stock" htmlFor={`st-${x.key}`} hint={v.availability === "MADE_TO_ORDER" ? "Not limited for made-to-order" : undefined}>
+                            <TextInput id={`st-${x.key}`} type="number" inputMode="numeric" min={0} step={1} value={x.stock} onChange={(e) => setVariant(x.key, { stock: Math.max(0, Math.floor(Number(e.target.value))) })} />
+                          </Field>
+                        </div>
+
+                        <div className="rounded-md border border-dashed border-line p-3">
+                          <p className="mb-1 text-sm font-medium">Photos for this variant</p>
+                          <p className="mb-3 text-xs text-muted">Shown when a customer picks this colour and size. 1st = main, 2nd = side, 3rd = bottom. None = the product photos.</p>
+                          <ImageUploader
+                            folder="products"
+                            path={[v.slug || slugify(v.name) || "new-product", glazeName.get(x.glaze) ?? "variant"]}
+                            max={3}
+                            label={`Variant ${i + 1} photo`}
+                            value={x.images as UploadedImage[]}
+                            onChange={(imgs) => setVariant(x.key, { images: imgs, image: imgs[0] ?? null })}
+                          />
+                          {v.images.length > 0 && x.images.length < 3 && (
+                            <div className="mt-3 max-w-sm">
+                              <Select
+                                aria-label="Use one of the product photos"
+                                value=""
+                                onChange={(e) => {
+                                  const im = v.images.find((p) => p.url === e.target.value);
+                                  if (im && !x.images.some((p) => p.url === im.url)) setVariant(x.key, { images: [...x.images, im], image: x.images[0] ?? im });
+                                }}
+                              >
+                                <option value="">…or use a product photo</option>
+                                {v.images.map((im, j) => <option key={im.url} value={im.url}>Product photo {j + 1}{im.alt ? `: ${im.alt}` : ""}</option>)}
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <Toggle label="Available" checked={x.isActive} onChange={(on) => setVariant(x.key, { isActive: on })} />
+                          <div className="flex flex-wrap gap-2">
+                            {!v.isUnique && (
+                              <Button type="button" size="sm" variant="secondary" onClick={() => addVariant(x)}>
+                                <Copy /> Add another size
+                              </Button>
+                            )}
+                            <Button type="button" size="sm" variant="quiet" disabled={v.variants.length === 1} onClick={() => removeVariant(x.key)} className="text-danger">
+                              <Trash2 /> Remove
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         </div>
@@ -313,9 +426,17 @@ export function ProductForm({
             <h2 id="sec-details" className={h2}>Details</h2>
             <div className="space-y-4">
               {shown("patternName") && (
-                <Field label="Pattern name" htmlFor="pattern" hint="Shown as a Pattern filter on the category page, e.g. Tapered">
-                  <TextInput id="pattern" list="pattern-names" autoComplete="off" value={v.patternName} onChange={(e) => set("patternName", e.target.value)} />
-                  <datalist id="pattern-names">{patternNames.map((n) => <option key={n} value={n} />)}</datalist>
+                <Field
+                  label="Pattern"
+                  htmlFor="pattern"
+                  hint={<>Shown as the Pattern filter on the category page. <Link className="underline" href="/admin/categories#patterns">Manage patterns</Link></>}
+                >
+                  <Select id="pattern" value={patternNames.find((n) => n.toLowerCase() === v.patternName.trim().toLowerCase()) ?? v.patternName} onChange={(e) => set("patternName", e.target.value)}>
+                    <option value="">No pattern</option>
+                    {patternNames.map((n) => <option key={n} value={n}>{n}</option>)}
+                    {/* A name typed before the pattern list existed stays selectable. */}
+                    {v.patternName && !patternNames.some((n) => n.toLowerCase() === v.patternName.trim().toLowerCase()) && <option value={v.patternName}>{v.patternName} (not in the list)</option>}
+                  </Select>
                 </Field>
               )}
               {shown("capacity") && <Field label="Capacity" htmlFor="capacity"><TextInput id="capacity" placeholder="e.g. 350 ml" value={v.capacity} onChange={(e) => set("capacity", e.target.value)} /></Field>}
@@ -374,7 +495,7 @@ export function ProductForm({
 
       {/* Sticky save bar */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 backdrop-blur lg:left-[248px]">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-3 px-4 py-3 md:px-8 lg:px-12">
+        <div className="mx-auto flex max-w-[1200px] items-center 2xl:max-w-[1600px] 3xl:max-w-[2000px] justify-between gap-3 px-4 py-3 md:px-8 lg:px-12">
           <p className="text-sm text-muted" role="status">
             {pending ? "Saving…" : saved ? "All changes saved." : initial ? "Edits aren't live until you save." : "New product"}
           </p>

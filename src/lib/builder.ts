@@ -152,7 +152,7 @@ export const SECTION_INFO: Record<SectionType, { label: string; hint: string; gr
   trustBar: { label: "Trust bar", hint: "A thin row of icons with short promises", group: "Content" },
   spacer: { label: "Spacer / divider", hint: "Empty space or a line", group: "Layout" },
   hero: { label: "Hero", hint: "The theme's hero (text in Content)", group: "Built-in" },
-  marquee: { label: "Scrolling ticker", hint: "Glaze and category names", group: "Built-in" },
+  marquee: { label: "Scrolling ticker", hint: "Colour and category names", group: "Built-in" },
   categories: { label: "Categories", hint: "Category tiles (design in Layout)", group: "Built-in" },
   readyToShip: { label: "Ready to ship", hint: "Carousel of in-stock pieces", group: "Built-in" },
   newArrivals: { label: "New arrivals", hint: "Grid of the newest pieces", group: "Built-in" },
@@ -170,14 +170,14 @@ export function makeSection(type: SectionType): Section {
   const starter: Partial<Record<SectionType, Record<string, unknown>>> = {
     features: {
       items: [
-        { icon: "hand", title: "Handmade", body: "Every piece is thrown and glazed by hand." },
-        { icon: "leaf", title: "Food safe", body: "Lead-free glazes, fired to stoneware." },
+        { icon: "hand", title: "Handmade", body: "Every piece is shaped and coloured by hand." },
+        { icon: "leaf", title: "Food safe", body: "Lead-free colours, fired to stoneware." },
         { icon: "truck", title: "Packed with care", body: "Shipped in recycled, protective packaging." },
       ],
     },
     stats: { items: [{ value: "1,200+", label: "pieces made" }, { value: "4.9★", label: "average rating" }, { value: "7 days", label: "easy returns" }] },
     testimonials: { items: [{ quote: "The mug is even more beautiful in person.", name: "Ananya", role: "Bengaluru" }, { quote: "Packed so carefully, arrived perfect.", name: "Rahul", role: "Pune" }] },
-    faq: { items: [{ q: "Are your pieces dishwasher safe?", a: "Yes, but hand-washing keeps the glaze bright for longer." }, { q: "How long does shipping take?", a: "Ready-to-ship pieces leave the studio in 2 working days." }] },
+    faq: { items: [{ q: "Are your pieces dishwasher safe?", a: "Yes, but hand-washing keeps the colour bright for longer." }, { q: "How long does shipping take?", a: "Ready-to-ship pieces leave the studio in 2 working days." }] },
     banner: { style: { width: "full", padding: "none" } },
     countdown: { endsAt: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 16), style: { background: "surface" } },
     trustBar: {

@@ -51,13 +51,15 @@ export function SearchTrigger({ mode, config, className }: { mode: "page" | "ove
 
       {mode === "overlay" && open && (
         <div role="dialog" aria-modal="true" aria-label="Search" className="fixed inset-0 z-[70] overflow-y-auto bg-canvas/95 text-ink backdrop-blur-xl animate-in fade-in-0">
-          <div className="container max-w-4xl py-6">
-            <div className="flex justify-end">
-              <button type="button" onClick={() => setOpen(false)} aria-label="Close search" className="inline-flex size-touch items-center justify-center rounded-full hover:bg-surface"><X className="size-6" /></button>
+          <div className="container max-w-4xl py-4 md:py-6">
+            <div className="flex items-center justify-between md:mb-6">
+              <p className="eyebrow">Search</p>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close search" className="inline-flex size-10 items-center justify-center rounded-full hover:bg-surface md:size-touch"><X className="size-5 md:size-6" /></button>
             </div>
-            <p className="eyebrow mb-4 mt-6">Search</p>
-            <SearchBox config={config} size="lg" autoFocus onNavigate={() => setOpen(false)} />
-            <p className="mt-6 text-xs text-muted">Press <kbd className="rounded border border-line px-1">Esc</kbd> to close · <kbd className="rounded border border-line px-1">/</kbd> opens search anywhere</p>
+            <div className="mt-3 md:mt-0">
+              <SearchBox config={config} size="lg" autoFocus onNavigate={() => setOpen(false)} />
+            </div>
+            <p className="mt-6 hidden text-xs text-muted md:block">Press <kbd className="rounded border border-line px-1">Esc</kbd> to close · <kbd className="rounded border border-line px-1">/</kbd> opens search anywhere</p>
           </div>
         </div>
       )}

@@ -3,7 +3,7 @@ import { DomainError } from "@/lib/errors";
 import { Types } from "mongoose";
 import { connectDB } from "@/lib/db/connect";
 import type { ProductInput } from "@/lib/validations/admin";
-import { Category, Glaze, Order, Product, Size } from "@/models";
+import { Category, Glaze, Order, Pattern, Product, Size } from "@/models";
 import { categoryFieldsSchema, checkAttributes, mergeFields, type CategoryField } from "@/lib/category-fields";
 
 export class CatalogError extends DomainError {}
@@ -105,10 +105,18 @@ export async function getProductForEdit(id: string) {
       stock: v.stock,
       isActive: v.isActive !== false,
       image: v.images?.main ? { url: v.images.main.url, publicId: v.images.main.publicId, alt: v.images.main.alt ?? "" } : null,
+      // Main, side and bottom photos of this variant (in that order).
+      images: [v.images?.main, v.images?.side, v.images?.bottom].flatMap((i) => (i?.url ? [{ url: i.url, publicId: i.publicId, alt: i.alt ?? "" }] : [])),
     })),
   };
 }
 export type ProductFormValues = NonNullable<Awaited<ReturnType<typeof getProductForEdit>>>;
+
+/** [main, side, bottom] → the stored { main, side, bottom }. */
+function variantImages(list: ProductInput["variants"][number]["images"]) {
+  const [main, side, bottom] = list;
+  return { ...(main ? { main } : {}), ...(side ? { side } : {}), ...(bottom ? { bottom } : {}) };
+}
 
 function toDocument(input: ProductInput) {
   return {
@@ -126,7 +134,7 @@ function toDocument(input: ProductInput) {
       compareAtPrice: v.compareAtPrice ? toPaise(v.compareAtPrice) : undefined,
       stock: v.stock,
       isActive: v.isActive,
-      images: v.image ? { main: v.image } : {},
+      images: variantImages(v.images.length ? v.images : v.image ? [v.image] : []),
     })),
   };
 }
@@ -153,10 +161,20 @@ export async function getCategoryForm(categoryId: string) {
 
 /** Validate category attributes on the server (the form can be bypassed). */
 async function withAttributes(input: ProductInput): Promise<ProductInput> {
-  const { fields } = await getCategoryForm(input.category);
+  const { fields, hide } = await getCategoryForm(input.category);
   const r = checkAttributes(fields, input.attributes ?? {});
   if (!r.ok) throw new CatalogError(r.error);
-  return { ...input, attributes: r.value };
+  // Inputs hidden for this category are cleared, so old values stop showing on the product page.
+  const off = (k: string) => hide.includes(k);
+  return {
+    ...input,
+    attributes: r.value,
+    ...(off("patternName") ? { patternName: "" } : {}),
+    ...(off("capacity") ? { capacity: "" } : {}),
+    ...(off("dimensions") ? { dimensions: "" } : {}),
+    ...(off("care") ? { care: "" } : {}),
+    ...(off("kitContents") ? { kitContents: [] } : {}),
+  };
 }
 
 export async function createProduct(input: ProductInput) {
@@ -304,21 +322,106 @@ export async function deleteCategory(id: string) {
   await Category.deleteOne({ _id: id });
 }
 
-/** Pattern names already used on products (suggestions in the product form, A→Z). */
-export async function listPatternNames() {
+const escapeRx = (q: string) => q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const sameName = (name: string) => new RegExp("^\\s*" + escapeRx(name.trim()) + "\\s*$", "i");
+const slugOf = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "pattern";
+
+/**
+ * Patterns (Admin → Categories → Patterns), in order. The first time, the list
+ * is filled from what already exists: old sub-subcategory names (Mugs →
+ * Tapered / Round…) and pattern names typed on products.
+ */
+export async function listPatterns() {
   await connectDB();
-  const names = (await Product.distinct("patternName")) as unknown[];
-  const seen = new Map<string, string>();
-  for (const n of names) {
-    const v = typeof n === "string" ? n.trim() : "";
-    if (v && !seen.has(v.toLowerCase())) seen.set(v.toLowerCase(), v);
+  let rows = await Pattern.find().sort({ sortOrder: 1, createdAt: 1, name: 1 }).lean();
+  if (!rows.length) {
+    const cats = await Category.find().select("_id parent name").lean();
+    const byId = new Map(cats.map((c) => [String(c._id), c]));
+    const deep = cats.filter((c) => c.parent && byId.get(String(c.parent))?.parent).map((c) => c.name);
+    const typed = ((await Product.distinct("patternName")) as unknown[]).filter((n): n is string => typeof n === "string");
+    const seen = new Map<string, string>();
+    for (const n of [...deep, ...typed]) {
+      const v = n.trim().replace(/\s+/g, " ");
+      if (v && !seen.has(v.toLowerCase())) seen.set(v.toLowerCase(), v);
+    }
+    if (seen.size) {
+      const used = new Set<string>();
+      const docs = [...seen.values()].map((name, i) => {
+        let slug = slugOf(name);
+        for (let n = 2; used.has(slug); n++) slug = `${slugOf(name)}-${n}`;
+        used.add(slug);
+        return { name, slug, sortOrder: i + 1 };
+      });
+      await Pattern.insertMany(docs, { ordered: false }).catch(() => undefined);
+      rows = await Pattern.find().sort({ sortOrder: 1, createdAt: 1, name: 1 }).lean();
+    }
   }
-  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+  return rows.map((r) => ({ id: String(r._id), name: r.name, slug: r.slug, sortOrder: r.sortOrder ?? 0 }));
+}
+
+/** Pattern names for the product form's Pattern menu, in order. */
+export async function listPatternNames() {
+  return (await listPatterns()).map((p) => p.name);
+}
+
+/** Keep pattern order numbers as 1, 2, 3… (the saved one goes to the position typed). */
+async function renumberPatterns(placedId?: string, position?: number) {
+  const all = await Pattern.find().sort({ sortOrder: 1, createdAt: 1, name: 1 }).select("_id sortOrder").lean();
+  const ids = all.map((x) => String(x._id));
+  if (placedId && ids.includes(placedId)) {
+    ids.splice(ids.indexOf(placedId), 1);
+    const at = Math.min(Math.max(1, Math.round(position ?? ids.length + 1)), ids.length + 1);
+    ids.splice(at - 1, 0, placedId);
+  }
+  const current = new Map(all.map((x) => [String(x._id), x.sortOrder]));
+  const ops = ids
+    .map((id, i) => ({ id, order: i + 1 }))
+    .filter((x) => current.get(x.id) !== x.order)
+    .map((x) => ({ updateOne: { filter: { _id: new Types.ObjectId(x.id) }, update: { $set: { sortOrder: x.order } } } }));
+  if (ops.length) await Pattern.bulkWrite(ops);
+}
+
+export async function savePattern(id: string | null, data: { name: string; slug: string; sortOrder: number }) {
+  await connectDB();
+  const clash = await Pattern.findOne({ name: sameName(data.name), ...(id ? { _id: { $ne: id } } : {}) }).select("_id").lean();
+  if (clash) throw new CatalogError(`There is already a pattern called “${data.name}”.`);
+  let savedId = id;
+  try {
+    if (id) {
+      const before = await Pattern.findById(id).select("name").lean();
+      if (!before) throw new CatalogError("That pattern no longer exists.");
+      await Pattern.updateOne({ _id: id }, { $set: data });
+      // Renamed: products using the old name follow along.
+      if (before.name !== data.name) {
+        await Product.updateMany({ patternName: sameName(before.name) }, { $set: { patternName: data.name } });
+      }
+    } else savedId = String((await Pattern.create(data))._id);
+  } catch (e) {
+    if (e instanceof CatalogError) throw e;
+    throw new CatalogError(duplicateKeyMessage(e) ?? "Couldn't save the pattern.");
+  }
+  await renumberPatterns(savedId ?? undefined, data.sortOrder);
+}
+
+export async function deletePattern(id: string) {
+  await connectDB();
+  const p = await Pattern.findById(id).select("name").lean();
+  if (!p) return;
+  const used = await Product.countDocuments({ patternName: sameName(p.name) });
+  if (used) throw new CatalogError(`“${p.name}” is used by ${used} product${used === 1 ? "" : "s"}. Choose another pattern on ${used === 1 ? "it" : "them"} first.`);
+  await Pattern.deleteOne({ _id: id });
+  await renumberPatterns();
 }
 
 export async function listGlazesAndSizes() {
   await connectDB();
-  const [glazes, sizes] = await Promise.all([Glaze.find().sort({ name: 1 }).lean(), Size.find().sort({ sortOrder: 1, label: 1 }).lean()]);
+  const [glazes, sizeRows] = await Promise.all([Glaze.find().sort({ name: 1 }).lean(), Size.find().sort({ sortOrder: 1, createdAt: 1, label: 1 }).lean()]);
+  // Older data may have gaps or repeats (1, 3, 3): tidy it to 1, 2, 3 once.
+  let sizes = sizeRows;
+  if (sizes.some((x, i) => x.sortOrder !== i + 1)) {
+    await renumberSizes();
+    sizes = await Size.find().sort({ sortOrder: 1, label: 1 }).lean();
+  }
   return {
     glazes: glazes.map((g) => ({ id: String(g._id), name: g.name, slug: g.slug, hex: g.hex ?? "#cccccc", finish: g.finish ?? "glossy" })),
     sizes: sizes.map((s) => ({ id: String(s._id), label: s.label, slug: s.slug, sortOrder: s.sortOrder ?? 0 })),
@@ -331,28 +434,52 @@ export async function saveGlaze(id: string | null, data: { name: string; slug: s
     if (id) await Glaze.updateOne({ _id: id }, { $set: data });
     else await Glaze.create(data);
   } catch (e) {
-    throw new CatalogError(duplicateKeyMessage(e) ?? "Couldn't save the glaze.");
+    throw new CatalogError(duplicateKeyMessage(e) ?? "Couldn't save the colour.");
   }
+}
+
+/**
+ * Keep size order numbers as 1, 2, 3… with no gaps or repeats. The size just
+ * saved goes to the position typed (e.g. 2 pushes the old 2nd size to 3).
+ */
+async function renumberSizes(placedId?: string, position?: number) {
+  const all = await Size.find().sort({ sortOrder: 1, createdAt: 1, label: 1 }).select("_id sortOrder").lean();
+  const ids = all.map((x) => String(x._id));
+  if (placedId && ids.includes(placedId)) {
+    ids.splice(ids.indexOf(placedId), 1);
+    const at = Math.min(Math.max(1, Math.round(position ?? ids.length + 1)), ids.length + 1);
+    ids.splice(at - 1, 0, placedId);
+  }
+  const current = new Map(all.map((x) => [String(x._id), x.sortOrder]));
+  const ops = ids
+    .map((id, i) => ({ id, order: i + 1 }))
+    .filter((x) => current.get(x.id) !== x.order)
+    .map((x) => ({ updateOne: { filter: { _id: new Types.ObjectId(x.id) }, update: { $set: { sortOrder: x.order } } } }));
+  if (ops.length) await Size.bulkWrite(ops);
 }
 
 export async function saveSize(id: string | null, data: { label: string; slug: string; sortOrder: number }) {
   await connectDB();
+  let savedId = id;
   try {
     if (id) await Size.updateOne({ _id: id }, { $set: data });
-    else await Size.create(data);
+    else savedId = String((await Size.create(data))._id);
   } catch (e) {
     throw new CatalogError(duplicateKeyMessage(e) ?? "Couldn't save the size.");
   }
+  await renumberSizes(savedId ?? undefined, data.sortOrder);
 }
 
 export async function deleteGlaze(id: string) {
   await connectDB();
-  if (await Product.exists({ "variants.glaze": id })) throw new CatalogError("This glaze is used by product variants.");
+  if (await Product.exists({ "variants.glaze": id })) throw new CatalogError("This colour is used by product variants. Remove it from those products first.");
   await Glaze.deleteOne({ _id: id });
 }
 
 export async function deleteSize(id: string) {
   await connectDB();
-  if (await Product.exists({ "variants.size": id })) throw new CatalogError("This size is used by product variants.");
+  if (await Product.exists({ "variants.size": id })) throw new CatalogError("This size is used by product variants. Remove it from those products first.");
   await Size.deleteOne({ _id: id });
+  // Close the gap: 1, 2, 4 → 1, 2, 3.
+  await renumberSizes();
 }

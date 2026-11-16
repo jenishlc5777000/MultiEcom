@@ -29,8 +29,8 @@ export const variantInput = z.object({
   stock: z.coerce.number().int().min(0).max(100000),
   isActive: z.boolean().default(true),
   image: imageInput.nullable().optional(),
-  fields: categoryFieldsSchema,
-  hideFields: z.array(z.enum(BUILTIN_KEYS)).max(BUILTIN_KEYS.length).default([]),
+  /** Up to 3 photos for this variant: main, side, bottom (shown when a customer picks it). */
+  images: z.array(imageInput).max(3).default([]),
 });
 
 export const productInput = z
@@ -58,7 +58,7 @@ export const productInput = z
     const skus = p.variants.map((v) => v.sku);
     if (new Set(skus).size !== skus.length) ctx.addIssue({ code: "custom", path: ["variants"], message: "Each variant needs a different SKU" });
     const combos = p.variants.map((v) => `${v.glaze ?? ""}|${v.size ?? ""}`);
-    if (new Set(combos).size !== combos.length) ctx.addIssue({ code: "custom", path: ["variants"], message: "Two variants have the same glaze and size" });
+    if (new Set(combos).size !== combos.length) ctx.addIssue({ code: "custom", path: ["variants"], message: "Two variants have the same colour and size" });
     if (p.availability === "MADE_TO_ORDER" && !p.leadTimeDays) ctx.addIssue({ code: "custom", path: ["leadTimeDays"], message: "Made-to-order pieces need a lead time" });
     if (p.isUnique && (p.variants.length !== 1 || (p.variants[0]?.stock ?? 0) > 1))
       ctx.addIssue({ code: "custom", path: ["isUnique"], message: "One-of-a-kind pieces have a single variant with stock 0 or 1" });
@@ -84,6 +84,10 @@ export const categoryInput = z.object({
       allowedSizes: z.array(objectId).max(100).default([]),
     })
     .default({}),
+  /** Extra product-form inputs for this category (Admin → Categories → Product fields). */
+  fields: categoryFieldsSchema,
+  /** Built-in product inputs hidden for this category (Pattern, Capacity, Colour…). */
+  hideFields: z.array(z.enum(BUILTIN_KEYS)).max(BUILTIN_KEYS.length).default([]),
 });
 
 export const glazeInput = z.object({
@@ -95,6 +99,12 @@ export const glazeInput = z.object({
 
 export const sizeInput = z.object({
   label: z.string().trim().min(1).max(30),
+  slug,
+  sortOrder: z.coerce.number().int().min(0).max(999).default(0),
+});
+
+export const patternInput = z.object({
+  name: z.string().trim().min(1).max(40),
   slug,
   sortOrder: z.coerce.number().int().min(0).max(999).default(0),
 });

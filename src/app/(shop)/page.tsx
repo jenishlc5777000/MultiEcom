@@ -50,7 +50,7 @@ export default async function HomePage({ searchParams }: Props) {
     // Real catalogue numbers only; anything that is zero is left out.
     stats: [
       { value: highlights.readyCount, label: "ready to ship" },
-      { value: highlights.glazeNames.length, label: "glazes" },
+      { value: highlights.glazeNames.length, label: "colours" },
       { value: categories.length, label: "categories" },
     ].filter((s) => s.value > 0 && site.content.hero.showStats),
     tickerItems: [...highlights.glazeNames, ...categories.map((c) => c.name)],

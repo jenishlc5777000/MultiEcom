@@ -232,7 +232,7 @@ const pagesSchema = z.object({
       layout: z.enum(["classic", "showcase"]).default("classic"),
       showBreadcrumb: z.boolean().default(true),
       showReviews: z.boolean().default(true),
-      handmadeNote: text(240, "Each piece is handmade, so small variations in glaze and form are part of its character."),
+      handmadeNote: text(240, "Each piece is handmade, so small variations in colour and form are part of its character."),
       /** Shape of the big product photo (same on phone and laptop), and whether it fills the frame or shows the whole photo. */
       photoRatio: z.enum(["4:5", "1:1", "3:4", "2:3", "4:3"]).default("4:5"),
       photoFit: z.enum(["cover", "contain"]).default("cover"),
@@ -260,7 +260,7 @@ const contentSchema = z.object({
       eyebrow: text(80, "Handmade ceramics & craft kits"),
       /** Lines separated by "/"; wrap a word in *asterisks* to emphasise it. */
       title: text(160, "Made slowly, / for the *everyday* / table."),
-      subtitle: text(300, "Mugs, bowls, planters and kits for your own hands, thrown, glazed and fired piece by piece."),
+      subtitle: text(300, "Mugs, bowls, planters and kits for your own hands, thrown, coloured and fired piece by piece."),
       ctaLabel: text(40, "Shop the collection"),
       ctaHref: link("/category"),
       secondaryLabel: text(40, "Our story"),
@@ -310,7 +310,7 @@ const contentSchema = z.object({
     .object({
       eyebrow: text(60, "Our story"),
       title: text(120, "From our wheel / to your *table*"),
-      body: text(1200, "Because every piece is made by hand, no two are exactly alike: glazes pool, drip and break differently in every firing."),
+      body: text(1200, "Because every piece is made by hand, no two are exactly alike: colours pool, drip and break differently in every firing."),
       ctaLabel: text(40, "Read our story"),
       image: z.object({ url: z.string().max(500), publicId: z.string().max(300), alt: z.string().max(200).default("") }).nullable().default(null),
     })
@@ -325,8 +325,8 @@ const contentSchema = z.object({
         .default([
           { title: "Shape", body: "Each form starts as a lump of clay, thrown on the wheel or built by hand." },
           { title: "Trim & dry", body: "Pieces are trimmed, refined and left to dry slowly so they don't crack." },
-          { title: "Glaze", body: "Glazes are brushed, dipped or poured, and every piece takes them a little differently." },
-          { title: "Fire", body: "A long kiln firing turns clay to stoneware and melts the glaze to glass." },
+          { title: "Colour", body: "Colours are brushed, dipped or poured, and every piece takes them a little differently." },
+          { title: "Fire", body: "A long kiln firing turns clay to stoneware and melts the colour to glass." },
         ]),
     })
     .default({}),
@@ -353,7 +353,7 @@ const searchSchema = z.object({
   instant: z.boolean().default(true),
   suggestionCount: int(3, 10, 6),
   showCategoryMatches: z.boolean().default(true),
-  placeholder: text(80, "Search mugs, bowls, glazes…"),
+  placeholder: text(80, "Search mugs, bowls, colours…"),
   /** Quick-search chips shown before typing. */
   popular: z
     .array(z.string().max(40))
@@ -488,7 +488,7 @@ export type ShoppingConfig = z.infer<typeof shoppingSchema>;
 const blogSchema = z.object({
   enabled: z.boolean().default(true),
   title: text(60, "Journal"),
-  intro: text(300, "Notes from the studio: how pieces are made, glaze stories and care tips."),
+  intro: text(300, "Notes from the studio: how pieces are made, colour stories and care tips."),
   /** Link in the footer (and optionally the header menu). */
   showInFooter: z.boolean().default(true),
   footerLabel: text(40, "Blog"),

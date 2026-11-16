@@ -11,12 +11,12 @@ export type FieldType = (typeof FIELD_TYPES)[number];
 
 /** Built-in product inputs a category can hide. */
 export const BUILTIN_FIELDS = {
-  patternName: "Pattern name",
+  patternName: "Pattern",
   capacity: "Capacity",
   dimensions: "Dimensions",
   care: "Care",
   kitContents: "Kit contents",
-  glaze: "Glaze (variants)",
+  glaze: "Colour (variants)",
   size: "Size (variants)",
 } as const;
 export type BuiltinField = keyof typeof BUILTIN_FIELDS;

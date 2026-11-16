@@ -3,6 +3,7 @@ export * from "./Category";
 export * from "./Collection";
 export * from "./Glaze";
 export * from "./Size";
+export * from "./Pattern";
 export * from "./Product";
 export * from "./Cart";
 export * from "./Order";

@@ -17,7 +17,7 @@ export function ProductListing({ products, layout = "grid" }: { products: Produc
   if (layout === "list") return <ListRows products={products} />;
   if (layout === "compact") {
     return (
-      <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 [&_.product-card-price]:text-[13px] [&_.product-card-title]:text-[13px]">
+      <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 3xl:grid-cols-8 [&_.product-card-price]:text-[13px] [&_.product-card-title]:text-[13px]">
         {products.map((p, i) => (
           <Reveal as="li" key={p.id} delay={(i % 6) * 50}>
             <ProductCard product={p} priority={i < 6} sizes="(min-width: 1024px) 16vw, (min-width: 640px) 33vw, 50vw" />
@@ -30,7 +30,7 @@ export function ProductListing({ products, layout = "grid" }: { products: Produc
     // Alternating photo heights in CSS columns, like a pin board.
     const ratios = ["4 / 5", "1 / 1", "3 / 4", "4 / 5", "2 / 3", "1 / 1"];
     return (
-      <ul className="columns-2 gap-4 md:columns-3 md:gap-6 lg:columns-4">
+      <ul className="columns-2 gap-4 md:columns-3 md:gap-6 lg:columns-4 3xl:columns-5">
         {products.map((p, i) => (
           <li key={p.id} className="mb-6 break-inside-avoid [&_.product-card-media]:![aspect-ratio:var(--r)]" style={{ "--r": ratios[i % ratios.length] } as React.CSSProperties}>
             <ProductCard product={p} priority={i < 4} sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw" />

@@ -49,7 +49,7 @@ export const LABELS = L({
   "home.bentoNewEyebrow": { g: "home", d: "FRESH FROM NIBBEA", hint: "Bento home page" },
   "home.bentoNewTitle": { g: "home", d: "Our Latest Creations", hint: "Bento home page" },
   "home.spotlightBadge": { g: "home", d: "Piece of the week", hint: "Spotlight home page" },
-  "home.spotlightText": { g: "home", d: "Made by hand, so every one is slightly different. Choose your glaze and size on the next page.", hint: "Spotlight home page" },
+  "home.spotlightText": { g: "home", d: "Made by hand, so every one is slightly different. Choose your colour and size on the next page.", hint: "Spotlight home page" },
   "home.availableIn": { g: "home", d: "Available in" },
   "home.chooseBuy": { g: "home", d: "Choose & buy" },
   "home.shopEverything": { g: "home", d: "Shop everything" },

@@ -28,7 +28,7 @@ const ICONS: Record<string, LucideIcon> = { sparkles: Sparkles, truck: Truck, gi
 const ed = (s: Section, path: string, raw: string) => ({ "data-edit": `builder:${s.id}.${path}`, "data-edit-raw": raw });
 
 const PADDING = { none: "py-0", sm: "py-8 md:py-10", md: "py-12 md:py-20", lg: "py-20 md:py-28", xl: "py-28 md:py-40" } as const;
-const WIDTH = { narrow: "container max-w-3xl", normal: "container", wide: "container max-w-[1600px]", full: "w-full" } as const;
+const WIDTH = { narrow: "container max-w-3xl", normal: "container", wide: "container max-w-[1600px] 3xl:max-w-none", full: "w-full" } as const;
 const isBuiltin = (t: string) => (BUILTIN_TYPES as readonly string[]).includes(t);
 
 /** The home page as built in Studio → Sections. */

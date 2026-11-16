@@ -7,7 +7,7 @@ import type { ActionResult } from "@/types/dto";
 
 export async function addToCartAction(input: unknown): Promise<ActionResult> {
   const parsed = addToCartSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Please choose a glaze and size." };
+  if (!parsed.success) return { ok: false, error: "Please choose a colour and size." };
   try {
     await addItem(parsed.data.productId, parsed.data.variantId, parsed.data.qty);
   } catch (e) {

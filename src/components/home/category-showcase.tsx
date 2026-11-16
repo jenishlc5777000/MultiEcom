@@ -92,7 +92,8 @@ function MosaicLayout({ categories }: { categories: CategoryDTO[] }) {
 
 function CardsLayout({ categories }: { categories: CategoryDTO[] }) {
   return (
-    <ul className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4">
+    // Columns follow the number of categories (3 categories = 3 equal columns that fill the row).
+    <ul className={cn("grid grid-cols-2 gap-4 md:gap-6", categories.length === 3 ? "md:grid-cols-3" : categories.length === 2 ? "md:grid-cols-2" : categories.length === 1 ? "grid-cols-1" : "lg:grid-cols-4")}>
       {categories.slice(0, 8).map((c, i) => (
         <Reveal as="li" key={c.id} delay={(i % 4) * 90}>
           <Link

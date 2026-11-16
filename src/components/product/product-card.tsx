@@ -105,7 +105,7 @@ export function ProductGrid({ products }: { products: ProductCardDTO[] }) {
     <ul
       data-studio="product-list"
       // Columns and spacing come from Admin → Studio → Cards (CSS variables).
-      className="grid grid-cols-[repeat(var(--grid-cols-sm,2),minmax(0,1fr))] gap-x-[calc(var(--grid-gap,24px)*0.66)] gap-y-10 sm:grid-cols-[repeat(var(--grid-cols-md,3),minmax(0,1fr))] md:gap-x-[var(--grid-gap,24px)] md:gap-y-14 lg:grid-cols-[repeat(var(--grid-cols,4),minmax(0,1fr))]"
+      className="grid grid-cols-[repeat(var(--grid-cols-sm,2),minmax(0,1fr))] gap-x-[calc(var(--grid-gap,24px)*0.66)] gap-y-10 sm:grid-cols-[repeat(var(--grid-cols-md,3),minmax(0,1fr))] md:gap-x-[var(--grid-gap,24px)] md:gap-y-14 lg:grid-cols-[repeat(var(--grid-cols,4),minmax(0,1fr))] 3xl:grid-cols-[repeat(var(--grid-cols-xl,5),minmax(0,1fr))]"
     >
       {products.map((p, i) => (
         <Reveal as="li" key={p.id} delay={(i % 4) * 80}>

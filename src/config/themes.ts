@@ -593,7 +593,7 @@ const input: ThemeInput[] = [
   },
   {
     id: "nibbea", name: "Nibbea", group: "template",
-    description: "Client design: navy on white, Playfair serif, Category menu button, centred monogram logo, product page with labelled photos and glaze tiles.",
+    description: "Client design: navy on white, Playfair serif, Category menu button, centred monogram logo, product page with labelled photos and colour tiles.",
     colors: { canvas: "#FFFFFF", surface: "#F4F6FA", surfaceStrong: "#E6EAF2", line: "#E2E6EE", ink: "#1B2A4A", muted: "#5D6880", accent: "#1B2A4A", accentSoft: "#C9D3E6", paper: "#FFFFFF", onAccent: "#FFFFFF" },
     type: { display: "playfair", weight: 600, scale: 0.95, em: "italic", eyebrow: 0.22 }, shape: [4, 6, 8, 6], effect: "none",
     layout: { home: "shop", hero: "split", categories: "tiles", cards: "classic", sections: "shop-first", listing: "grid" },

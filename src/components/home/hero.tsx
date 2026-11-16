@@ -98,13 +98,16 @@ export function Headline({ lines, className, accent }: { lines: string[]; classN
   );
 }
 
+/** Hero buttons: compact on phones, full size from tablets up. */
+const SMALL_ON_PHONE = "min-h-11 px-5 text-sm md:min-h-14 md:px-8 md:text-base";
+
 function Ctas({
   href, label, secondaryHref, secondaryLabel, className, onPhoto = false,
 }: { href: string; label: string; secondaryHref?: string; secondaryLabel?: string; className?: string; onPhoto?: boolean }) {
   return (
-    <div className={cn("flex animate-fade-up flex-wrap gap-3 [animation-delay:720ms]", className)}>
+    <div className={cn("flex animate-fade-up flex-wrap gap-2 [animation-delay:720ms] md:gap-3", className)}>
       {/* On a photo the colours are fixed (white on dark wash), whatever the theme is */}
-      <Button asChild size="lg" className={onPhoto ? "bg-white text-black hover:bg-white/90" : undefined}>
+      <Button asChild size="lg" className={cn(SMALL_ON_PHONE, onPhoto && "bg-white text-black hover:bg-white/90")}>
         <Link href={href}>
           {label} <ButtonArrow />
         </Link>
@@ -113,7 +116,7 @@ function Ctas({
         asChild
         size="lg"
         variant="secondary"
-        className={onPhoto ? "border-white/50 text-white hover:border-white hover:bg-white hover:text-black" : undefined}
+        className={cn(SMALL_ON_PHONE, onPhoto && "border-white/50 text-white hover:border-white hover:bg-white hover:text-black")}
       >
         <Link href={secondaryHref || "/about"}>{secondaryLabel}</Link>
       </Button>}
@@ -157,14 +160,14 @@ function FeaturedCard({ featured, className, label = "Featured" }: { featured?: 
   if (!featured) return null;
   return (
     <Link href={`/products/${featured.slug}`} className={cn("group animate-fade-up [animation-delay:1250ms]", className)}>
-      <div className="flex animate-float items-center gap-4 rounded-md bg-canvas/95 p-3 pr-5 text-ink shadow-float backdrop-blur transition-transform duration-500 group-hover:-translate-y-1">
-        <div className="relative size-16 shrink-0 overflow-hidden rounded-sm bg-surface">
+      <div className="flex animate-float items-center gap-3 rounded-md bg-canvas/95 p-2 pr-3 text-ink shadow-float backdrop-blur transition-transform duration-500 group-hover:-translate-y-1 md:gap-4 md:p-3 md:pr-5">
+        <div className="relative size-11 shrink-0 overflow-hidden rounded-sm bg-surface md:size-16">
           {featured.image && <Image src={featured.image.url} alt="" fill sizes="64px" className="object-cover transition-transform duration-700 group-hover:scale-110" />}
         </div>
         <div className="min-w-0">
-          <p className="text-eyebrow uppercase text-accent">{label}</p>
-          <p className="line-clamp-2 font-medium leading-snug">{featured.name}</p>
-          <p className="text-sm text-muted">From {formatINR(featured.priceFrom)}</p>
+          <p className="text-[10px] uppercase tracking-[0.14em] text-accent md:text-eyebrow">{label}</p>
+          <p className="line-clamp-1 text-[13px] font-medium leading-snug md:line-clamp-2 md:text-base">{featured.name}</p>
+          <p className="text-xs text-muted md:text-sm">From {formatINR(featured.priceFrom)}</p>
         </div>
       </div>
     </Link>
@@ -216,7 +219,7 @@ function SplitHero(props: Omit<Props, "layout">) {
             <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" />
           </HeroImage>
           <RotatingBadge className="-top-4 right-4 lg:-right-4" />
-          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="absolute -bottom-6 left-4 right-4 sm:right-auto sm:w-80 lg:-left-2" />
+          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="absolute -bottom-6 left-4 max-w-[min(17rem,calc(100%-2rem))] sm:w-80 sm:max-w-none lg:-left-2" />
         </div>
       </div>
     </section>
@@ -244,7 +247,7 @@ function CenteredHero(props: Omit<Props, "layout">) {
             sizes="100vw"
             className="relative aspect-[4/5] animate-clip-up rounded-lg sm:aspect-[16/9] lg:aspect-[21/9] [animation-delay:300ms]"
           />
-          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="absolute -bottom-6 left-4 right-4 sm:left-8 sm:right-auto sm:w-80" />
+          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="absolute -bottom-6 left-4 max-w-[min(17rem,calc(100%-2rem))] sm:left-8 sm:w-80 sm:max-w-none" />
         </div>
         <Stats stats={props.stats} className="mx-auto mt-16 max-w-xl justify-center border-t-0 pt-0 text-center" />
       </div>
@@ -272,7 +275,7 @@ function FullBleedHero(props: Omit<Props, "layout">) {
         </div>
         <div className="space-y-8 lg:col-span-4 lg:justify-self-end">
           <Stats stats={props.stats} onPhoto />
-          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="block sm:w-80" />
+          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="block max-w-[17rem] sm:w-80 sm:max-w-none" />
         </div>
       </div>
     </section>

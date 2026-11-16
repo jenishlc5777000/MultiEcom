@@ -21,7 +21,7 @@ export default async function AdminBlogPage() {
       />
       <div className="space-y-8">
         {posts.length === 0 ? (
-          <EmptyState title="No posts yet">Write your first post: studio news, how a glaze is made, care tips…</EmptyState>
+          <EmptyState title="No posts yet">Write your first post: studio news, how a colour is made, care tips…</EmptyState>
         ) : (
           <ul className="divide-y divide-line rounded-lg border border-line bg-paper">
             {posts.map((p) => (

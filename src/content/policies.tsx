@@ -259,7 +259,7 @@ export function getPolicy(slug: PolicySlug, s: StoreFacts): Policy {
           {
             id: "handmade",
             heading: "Handmade products",
-            body: <p>Each piece is made by hand, so size, colour and glaze will vary slightly from the photos and from other pieces. One-of-a-kind pieces are sold only once, and the item you receive is the one pictured.</p>,
+            body: <p>Each piece is made by hand, so size, colour and finish will vary slightly from the photos and from other pieces. One-of-a-kind pieces are sold only once, and the item you receive is the one pictured.</p>,
           },
           {
             id: "cancellations",

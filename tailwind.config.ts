@@ -7,10 +7,12 @@ const token = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
-    // Fluid container capped at 1360px. Gutters (20px → 40px from md) are set in
+    // Fluid container that grows with the screen: 1360px on laptops, 1920px on
+    // full-HD monitors, 2400px on 27"+ (1440p / 4K) screens. Gutters are set in
     // globals.css because container padding only follows container.screens.
-    container: { center: true, padding: "1.25rem", screens: { "2xl": "1360px" } },
+    container: { center: true, padding: "1.25rem", screens: { "2xl": "1360px", "3xl": "1920px", "4xl": "2400px" } },
     extend: {
+      screens: { "3xl": "1920px", "4xl": "2400px" },
       colors: {
         canvas: token("canvas"),
         surface: { DEFAULT: token("surface"), strong: token("surface-strong") },

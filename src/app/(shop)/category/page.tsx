@@ -67,7 +67,7 @@ export default async function CategoriesPage() {
             {opts.showSubcategories && categories.some((c) => c.children.length > 0) && (
               <section className="space-y-6 border-t border-line pt-10">
                 <h2 className="text-h3">Browse subcategories</h2>
-                <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 3xl:grid-cols-5">
                   {categories.filter((c) => c.children.length > 0).map((c) => (
                     <li key={c.id}>
                       <Link href={`/category/${c.slug}`} className="mb-2 inline-block text-eyebrow uppercase text-muted hover:text-ink">{c.name}</Link>

@@ -72,6 +72,10 @@ export function ProductPurchase({
   const find = (g: string | null, s: string | null) =>
     product.variants.find((v) => (v.glaze?.id ?? null) === g && (v.size?.id ?? null) === s);
   const variant = find(glazeId, sizeId);
+  // Photos: this variant's own, else another size in the same colour that has photos.
+  const photoVariant = variant?.images.main
+    ? variant
+    : product.variants.find((v) => (v.glaze?.id ?? null) === glazeId && v.images.main) ?? variant;
 
   /** A photo for each glaze: the main photo of a variant in that glaze. */
   const glazePhoto = (gid: string): ImageDTO | undefined =>
@@ -122,7 +126,7 @@ export function ProductPurchase({
     return (
       <div className="grid gap-8 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-12">
         <div className={imageSide === "right" ? "md:order-2" : undefined}>
-          <ShowcaseGallery images={galleryFor(product, variant)} resetKey={variant?.id ?? "none"} />
+          <ShowcaseGallery images={galleryFor(product, photoVariant)} resetKey={photoVariant?.id ?? "none"} />
         </div>
 
         <div className="space-y-6">
@@ -242,7 +246,7 @@ export function ProductPurchase({
   return (
     <div className="grid gap-8 md:grid-cols-2 md:gap-12">
       <div className={imageSide === "right" ? "md:order-2" : undefined}>
-        <ProductGallery images={galleryFor(product, variant)} resetKey={variant?.id ?? "none"} />
+        <ProductGallery images={galleryFor(product, photoVariant)} resetKey={photoVariant?.id ?? "none"} />
       </div>
 
       <div className="space-y-6">

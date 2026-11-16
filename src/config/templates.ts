@@ -36,9 +36,9 @@ const inDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString(
 
 const faq = (items: [string, string][]) => items.map(([q, a]) => ({ q, a }));
 const commonFaq = faq([
-  ["Is every piece really handmade?", "Yes. Each piece is thrown or built by hand, so small differences in glaze and shape are part of it."],
+  ["Is every piece really handmade?", "Yes. Each piece is thrown or built by hand, so small differences in colour and shape are part of it."],
   ["How long does delivery take?", "Ready-to-ship pieces leave the studio within 2 working days and arrive in 3–6 days across India."],
-  ["Are your ceramics food and dishwasher safe?", "Our glazes are lead-free and food safe. Hand-washing keeps them bright for longer."],
+  ["Are your ceramics food and dishwasher safe?", "Our colours are lead-free and food safe. Hand-washing keeps them bright for longer."],
   ["Can I return a piece?", "You can request a return within 7 days of delivery from your orders page."],
 ]);
 
@@ -49,7 +49,7 @@ export const TEMPLATES: Record<string, TemplateStarter> = {
       hero: {
         eyebrow: "Limited drop — winter kiln",
         title: "Fired at night. / *Made to stand out.*",
-        subtitle: "A small batch of dark-glazed mugs, bowls and vases. When this kiln load is gone, it's gone.",
+        subtitle: "A small batch of dark-coloured mugs, bowls and vases. When this kiln load is gone, it's gone.",
         ctaLabel: "Shop the drop", ctaHref: "/category/ceramics", secondaryLabel: "See the set", secondaryHref: "#the-set", useBannerText: false,
       },
       closing: { title: "Your table called. / *It wants something dark.*", body: "Limited pieces from one kiln load. Once they're gone, they're gone.", ctaLabel: "Find your piece" },
@@ -57,10 +57,10 @@ export const TEMPLATES: Record<string, TemplateStarter> = {
     sections: () => [
       sec("hero", { style: { padding: "none" } }),
       sec("trustBar", { items: [{ icon: "flame", label: "One kiln load only" }, { icon: "shield", label: "Packed to arrive whole" }, { icon: "truck", label: "Ships in 2 days" }, { icon: "award", label: "Secure checkout" }] }),
-      sec("products", { eyebrow: "Limited edition. Dark glazes.", title: "Pick your *piece.*", source: "newest", count: 4, layout: "grid", linkLabel: "Shop all ceramics" }),
+      sec("products", { eyebrow: "Limited edition. Dark colours.", title: "Pick your *piece.*", source: "newest", count: 4, layout: "grid", linkLabel: "Shop all ceramics" }),
       sec("imageText", {
         eyebrow: "Three pieces, one price", title: "The Night Set. / *More table, less spend.*",
-        body: "A mug, a bowl and a bud vase in the same smoky glaze. Bought together, they cost less than on their own.",
+        body: "A mug, a bowl and a bud vase in the same smoky colour. Bought together, they cost less than on their own.",
         ctaLabel: "Get the set", ctaHref: "/category/ceramics", image: demo("hero.svg", "Dark speckled mug"), imageShape: "square",
         style: { background: "custom", color: "#2A1B3A", anchor: "the-set", padding: "lg" },
       }),
@@ -77,7 +77,7 @@ export const TEMPLATES: Record<string, TemplateStarter> = {
       hero: {
         eyebrow: "Small-batch handmade ceramics",
         title: "Made by hand. / *Used every day.*",
-        subtitle: "Mugs, bowls and vases thrown slowly at one wheel, glazed in small batches of twelve.",
+        subtitle: "Mugs, bowls and vases thrown slowly at one wheel, coloured in small batches of twelve.",
         ctaLabel: "Shop the collection", ctaHref: "/category", secondaryLabel: "Our story", secondaryHref: "#story", useBannerText: false,
       },
     },
@@ -85,12 +85,12 @@ export const TEMPLATES: Record<string, TemplateStarter> = {
       sec("hero", { style: { padding: "none" } }),
       sec("products", { eyebrow: "Fresh from the workbench", title: "This season's pieces", source: "newest", count: 4, layout: "grid", linkLabel: "View all" }),
       sec("imageText", {
-        eyebrow: "Crafted slowly, on purpose", title: "Every curve, glaze and handle — by hand.",
+        eyebrow: "Crafted slowly, on purpose", title: "Every curve, colour and handle — by hand.",
         body: "It started with one wheel and a stubborn idea: things you use every day should carry the mark of the hands that made them.",
         ctaLabel: "", image: demo("cat-ceramics.svg", "Ceramics on a table"), imageShape: "square",
         style: { background: "accent", anchor: "story", padding: "lg" },
       }),
-      sec("stats", { title: "", items: [{ value: "12", label: "pieces per batch" }, { value: "06", label: "hours per vase" }, { value: "03", label: "natural glazes" }], style: { background: "accent", padding: "sm" } }),
+      sec("stats", { title: "", items: [{ value: "12", label: "pieces per batch" }, { value: "06", label: "hours per vase" }, { value: "03", label: "natural colours" }], style: { background: "accent", padding: "sm" } }),
       sec("faq", { title: "Questions, *answered.*", items: commonFaq }),
       sec("cta", { title: "Say hello. / *We make it by hand.*", body: "Custom pieces, wholesale and gifts: write to us and we'll reply within two working days.", ctaLabel: "Get in touch", ctaHref: "/contact", secondaryLabel: "", style: { padding: "lg" } }),
     ],
@@ -102,7 +102,7 @@ export const TEMPLATES: Record<string, TemplateStarter> = {
       hero: {
         eyebrow: "Handmade, from one studio",
         title: "Your next favourite / *piece is waiting*",
-        subtitle: "Browse ceramics and craft supplies with honest prices. Search by name, glaze or category.",
+        subtitle: "Browse ceramics and craft supplies with honest prices. Search by name, colour or category.",
         ctaLabel: "Browse everything", ctaHref: "/category", secondaryLabel: "", useBannerText: false,
       },
       sections: { categoriesEyebrow: "Collections", categoriesTitle: "Browse by *type*" },
@@ -120,7 +120,7 @@ export const TEMPLATES: Record<string, TemplateStarter> = {
         ],
         style: { background: "surface" },
       }),
-      sec("cta", { title: "Can't find it? / *Ask for a custom piece.*", body: "Tell us the size and glaze you want and we'll quote within 48 hours.", ctaLabel: "Request a piece", ctaHref: "/contact", style: { align: "center" } }),
+      sec("cta", { title: "Can't find it? / *Ask for a custom piece.*", body: "Tell us the size and colour you want and we'll quote within 48 hours.", ctaLabel: "Request a piece", ctaHref: "/contact", style: { align: "center" } }),
     ],
   },
 
@@ -190,7 +190,7 @@ export const TEMPLATES: Record<string, TemplateStarter> = {
     sections: () => [
       sec("hero", { style: { padding: "none" } }),
       sec("products", { eyebrow: "Signature pieces", title: "The *collection*", source: "rating", count: 4, layout: "large", linkLabel: "View all" }),
-      sec("banner", { title: "Fired three times. / *Finished by hand.*", subtitle: "Gold lustre is applied after the glaze firing, then fired again to fuse it.", ctaLabel: "Discover", ctaHref: "/about", image: demo("hero.svg", "Speckled mug on dark table"), height: "lg", overlay: 55 }),
+      sec("banner", { title: "Fired three times. / *Finished by hand.*", subtitle: "Gold lustre is applied after the colour firing, then fired again to fuse it.", ctaLabel: "Discover", ctaHref: "/about", image: demo("hero.svg", "Speckled mug on dark table"), height: "lg", overlay: 55 }),
       sec("testimonials", { eyebrow: "Collectors", title: "In their *words*" }),
       sec("faq", { title: "Care & *questions*", items: commonFaq }),
       sec("closing"),
@@ -199,7 +199,7 @@ export const TEMPLATES: Record<string, TemplateStarter> = {
 };
 
 TEMPLATES.nibbea = {
-  summary: "Nibbea: Category menu button, centred NIBBEA monogram, clean product grid, and the showcase product page (labelled photos, glaze tiles, size buttons, quantity).",
+  summary: "Nibbea: Category menu button, centred NIBBEA monogram, clean product grid, and the showcase product page (labelled photos, colour tiles, size buttons, quantity).",
   look: {
     header: { variant: "nibbea", menuTrigger: "click", menuSubcategories: "collapsed" },
     logo: { type: "text", style: "monogram", mark: "N", textBefore: "NIBBEA", textAccent: "", textAfter: "" },
@@ -209,10 +209,10 @@ TEMPLATES.nibbea = {
     hero: {
       eyebrow: "Handmade ceramics",
       title: "Made by hand. / *Made to keep.*",
-      subtitle: "Mugs, planters and plates thrown in small batches and glazed in our studio.",
+      subtitle: "Mugs, planters and plates thrown in small batches and coloured in our studio.",
       ctaLabel: "Shop now", ctaHref: "/category", secondaryLabel: "", useBannerText: false, showStats: false,
     },
-    closing: { title: "Find your *favourite.*", body: "New glazes every month.", ctaLabel: "Shop all" },
+    closing: { title: "Find your *favourite.*", body: "New colours every month.", ctaLabel: "Shop all" },
   },
   sections: () => [
     sec("hero", { style: { padding: "none" } }),
@@ -239,7 +239,7 @@ TEMPLATES.satisfied = {
     hero: {
       eyebrow: "Handmade ceramics & craft kits",
       title: "Made slowly, / for the *everyday* / table.",
-      subtitle: "Mugs, bowls, planters and kits for your own hands, thrown, glazed and fired piece by piece.",
+      subtitle: "Mugs, bowls, planters and kits for your own hands, thrown, coloured and fired piece by piece.",
       ctaLabel: "Shop the collection", ctaHref: "/category", secondaryLabel: "Our story", secondaryHref: "/about",
       showStats: false,
     },

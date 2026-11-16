@@ -50,7 +50,7 @@ export function TypographyPanel({ design, theme, set }: { design: Design; theme:
           Made <em className="text-accent">slowly</em>
         </p>
         <p className="mt-3 text-muted" style={{ fontFamily: ty.body === "theme" ? theme.type.sans : FONTS[ty.body].css, fontSize: ty.bodySize || 16 }}>
-          Mugs, bowls and planters, thrown and glazed by hand.
+          Mugs, bowls and planters, shaped and coloured by hand.
         </p>
         <div className="mt-4 flex gap-2">
           <span className="inline-flex h-9 items-center bg-ink px-4 text-sm text-canvas" style={{ borderRadius: sh.buttons === "theme" ? theme.shape.pill : sh.buttons === "pill" ? 999 : sh.buttons === "rounded" ? 10 : 0 }}>Shop now</span>

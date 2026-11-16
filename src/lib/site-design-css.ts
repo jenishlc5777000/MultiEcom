@@ -44,7 +44,8 @@ export function siteDesignCss(site: SiteConfig, theme: Theme): string {
 
   // Product grid and card sizing.
   const mdCols = Math.min(3, c.columns);
-  root.push(`--grid-cols:${c.columns}`, `--grid-cols-md:${mdCols}`, `--grid-cols-sm:${c.columnsMobile}`, `--grid-gap:${c.gap}px`);
+  // Big monitors (≥1920px) get one more column so cards don't get oversized.
+  root.push(`--grid-cols:${c.columns}`, `--grid-cols-xl:${c.columns + 1}`, `--grid-cols-md:${mdCols}`, `--grid-cols-sm:${c.columnsMobile}`, `--grid-gap:${c.gap}px`);
   root.push(`--marquee-duration:${MARQUEE_SECONDS[animation.marqueeSpeed]}s`);
   // Product page photo shape (Studio → Pages & lists → Product page).
   const pp = site.pages.product;

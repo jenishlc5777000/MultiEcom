@@ -96,7 +96,7 @@ export function SearchBox({
       >
         <label className="relative block">
           <span className="sr-only">Search the shop</span>
-          <Search className={cn("pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted", big ? "left-0 size-7" : "left-4 size-4")} aria-hidden />
+          <Search className={cn("pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted", big ? "left-4 size-4 md:left-0 md:size-7" : "left-4 size-4")} aria-hidden />
           <input
             name="q"
             type="search"
@@ -122,16 +122,17 @@ export function SearchBox({
             className={cn(
               "w-full text-ink placeholder:text-muted/70 focus:outline-none",
               big
-                ? "border-0 border-b-2 border-line bg-transparent py-4 pl-11 pr-10 font-display text-3xl focus:border-ink md:text-5xl"
+                ? // Phones: a neat rounded search field. Larger screens: the big underlined search.
+                  "min-h-12 rounded-pill border border-line bg-paper pl-11 pr-10 text-base shadow-sm focus:border-ink md:min-h-0 md:rounded-none md:border-0 md:border-b-2 md:bg-transparent md:py-4 md:pl-11 md:font-display md:text-5xl md:shadow-none"
                 : size === "sm"
                   ? "min-h-10 rounded-pill border border-line bg-paper pl-11 pr-9 text-sm focus:border-ink"
                   : "min-h-12 rounded-pill border border-line bg-paper pl-11 pr-10 text-[15px] focus:border-ink",
             )}
           />
           {loading ? (
-            <Loader2 className={cn("absolute top-1/2 size-4 -translate-y-1/2 animate-spin text-muted", big ? "right-1" : "right-4")} aria-hidden />
+            <Loader2 className={cn("absolute top-1/2 size-4 -translate-y-1/2 animate-spin text-muted", big ? "right-4 md:right-1" : "right-4")} aria-hidden />
           ) : q ? (
-            <button type="button" aria-label="Clear search" onClick={() => { setQ(""); setData(null); }} className={cn("absolute top-1/2 -translate-y-1/2 text-muted hover:text-ink", big ? "right-1" : "right-3.5")}>
+            <button type="button" aria-label="Clear search" onClick={() => { setQ(""); setData(null); }} className={cn("absolute top-1/2 -translate-y-1/2 text-muted hover:text-ink", big ? "right-3.5 md:right-1" : "right-3.5")}>
               <X className="size-4" />
             </button>
           ) : null}

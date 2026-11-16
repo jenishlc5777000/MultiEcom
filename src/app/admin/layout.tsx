@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <AdminNav pending={pending.total} ownerName={owner.name ?? owner.email ?? "Owner"} />
       </aside>
       <main id="main" className="min-w-0 px-4 py-8 md:px-8 lg:px-12 lg:py-10">
-        <div className="mx-auto max-w-[1200px]">{children}</div>
+        <div className="mx-auto max-w-[1200px] 2xl:max-w-[1600px] 3xl:max-w-[2000px]">{children}</div>
       </main>
     </div>
   );

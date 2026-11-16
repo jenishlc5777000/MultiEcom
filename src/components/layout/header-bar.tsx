@@ -282,7 +282,7 @@ export function HeaderBar({
             </div>
             <Logo brand={brand} onClick={() => setMobileOpen(false)} className="justify-self-center" />
             <div className="flex items-center justify-self-end gap-1 sm:gap-3">
-              {features.favourites && <FavouritesLink className="hidden sm:inline-flex" />}
+              {features.favourites && <FavouritesLink className="size-11 sm:size-touch" />}
               {header.showAccount && (
                 <Link href="/profile" className="hidden min-w-12 flex-col items-center gap-0.5 rounded-md px-1.5 py-1 text-[11px] font-medium text-ink transition-colors hover:text-accent sm:inline-flex">
                   <User className="size-5" strokeWidth={1.6} aria-hidden />
@@ -310,7 +310,7 @@ export function HeaderBar({
             "container flex items-center justify-between gap-6",
             compact ? "h-14" : stacked ? "h-[calc(var(--header-h)+8px)]" : "h-[var(--header-h)]",
             (centered || stacked) && "lg:grid lg:grid-cols-[1fr_auto_1fr]",
-            floating && "max-w-[calc(1360px-2rem)] rounded-[min(var(--r-lg),28px)] border border-line bg-canvas/90 shadow-float backdrop-blur-xl",
+            floating && "max-w-[calc(1360px-2rem)] 3xl:max-w-[calc(1920px-2rem)] 4xl:max-w-[calc(2400px-2rem)] rounded-[min(var(--r-lg),28px)] border border-line bg-canvas/90 shadow-float backdrop-blur-xl",
           )}
         >
           {/* Stacked: an empty left cell keeps the logo centred */}
@@ -341,17 +341,31 @@ export function HeaderBar({
                 className={cn("hidden size-touch items-center justify-center rounded-full transition-colors md:inline-flex", inverse ? "hover:bg-white/10" : "hover:bg-surface")}
               />
             )}
-            {features.favourites && <FavouritesLink className={cn("hidden md:inline-flex", inverse && "hover:bg-white/10")} />}
+            {features.favourites && <FavouritesLink className={cn("size-11 md:size-touch", inverse && "hover:bg-white/10")} />}
             {header.showAccount && (
               <Link href="/profile" aria-label="Account" className={cn("hidden size-touch items-center justify-center rounded-full transition-colors md:inline-flex", inverse ? "hover:bg-white/10" : "hover:bg-surface")}>
                 <User className="size-5" strokeWidth={1.5} />
               </Link>
             )}
+            {/* Phones: a cart icon with a count badge */}
+            <Link
+              href="/cart"
+              aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
+              className={cn("relative inline-flex size-11 items-center justify-center rounded-full transition-colors md:hidden", inverse ? "hover:bg-white/10" : "hover:bg-surface")}
+            >
+              <ShoppingCart className="size-5" strokeWidth={1.6} aria-hidden />
+              {cartCount > 0 && (
+                <span key={cartCount} className={cn("absolute right-0.5 top-0.5 inline-flex min-w-[18px] animate-in zoom-in-50 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-[18px]", inverse ? "bg-canvas text-ink" : "bg-accent text-on-accent")}>
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Link>
+            {/* Tablets and up: the "Cart (n)" button */}
             <Link
               href="/cart"
               aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
               className={cn(
-                "ml-1 inline-flex items-center gap-2 rounded-pill px-4 text-sm font-medium transition-colors",
+                "ml-1 hidden items-center gap-2 rounded-pill px-4 text-sm font-medium transition-colors md:inline-flex",
                 compact ? "min-h-10" : "min-h-touch",
                 inverse ? "bg-canvas text-ink hover:bg-canvas/85" : boxed ? "border-2 border-ink text-ink hover:bg-ink hover:text-canvas" : "btn-primary bg-ink text-canvas hover:bg-ink/85",
               )}
@@ -365,7 +379,7 @@ export function HeaderBar({
             {/* Mobile menu toggle: two lines morph into an X */}
             <button
               type="button"
-              className={cn("relative ml-1 inline-flex size-touch items-center justify-center rounded-full", !menuEverywhere && "lg:hidden")}
+              className={cn("relative inline-flex size-11 items-center justify-center rounded-full md:ml-1 md:size-touch", !menuEverywhere && "lg:hidden")}
               aria-expanded={mobileOpen}
               aria-controls="mobile-menu"
               aria-label={mobileOpen ? "Close menu" : "Open menu"}

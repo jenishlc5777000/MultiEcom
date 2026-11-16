@@ -3,16 +3,18 @@
 import { z } from "zod";
 import { storeImage } from "@/lib/uploads";
 import { objectId } from "@/lib/validations";
-import { categoryInput, glazeInput, productInput, sizeInput } from "@/lib/validations/admin";
+import { categoryInput, glazeInput, patternInput, productInput, sizeInput } from "@/lib/validations/admin";
 import type { Image } from "@/models";
 import {
   createProduct,
   deleteCategory,
   deleteGlaze,
   deleteProduct,
+  deletePattern,
   deleteSize,
   saveCategory,
   saveGlaze,
+  savePattern,
   saveSize,
   setProductStatus,
   updateProduct,
@@ -99,6 +101,14 @@ export async function deleteGlazeAction(id: string) {
 
 export async function saveSizeAction(id: string | null, raw: unknown) {
   return ownerAction(z.object({ id: optionalId, input: sizeInput }), { id, input: raw }, ({ id, input }) => saveSize(id, input), ["/admin/categories", ...STOREFRONT]);
+}
+
+export async function savePatternAction(id: string | null, raw: unknown) {
+  return ownerAction(z.object({ id: optionalId, input: patternInput }), { id, input: raw }, ({ id, input }) => savePattern(id, input), ["/admin/categories", ...PRODUCT_FORMS, ...STOREFRONT]);
+}
+
+export async function deletePatternAction(id: string) {
+  return ownerAction(z.object({ id: objectId }), { id }, ({ id }) => deletePattern(id), ["/admin/categories", ...PRODUCT_FORMS]);
 }
 
 export async function deleteSizeAction(id: string) {

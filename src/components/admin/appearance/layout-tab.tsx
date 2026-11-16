@@ -90,7 +90,7 @@ export function LayoutTab({ initial, theme, builder }: { initial: SiteConfig["de
           ])}
         />
         <div className="grid gap-2 sm:grid-cols-2">
-          <SwitchRow label="Scrolling ticker" hint="Glaze and category names under the hero" checked={sec.marquee} onChange={(x) => setSec("marquee", x)} />
+          <SwitchRow label="Scrolling ticker" hint="Colour and category names under the hero" checked={sec.marquee} onChange={(x) => setSec("marquee", x)} />
           <SwitchRow label="Categories" checked={sec.categories} onChange={(x) => setSec("categories", x)} />
           <SwitchRow label="Our story" checked={sec.story} onChange={(x) => setSec("story", x)} />
           <SwitchRow label="The process" checked={sec.process} onChange={(x) => setSec("process", x)} />

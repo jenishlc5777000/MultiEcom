@@ -57,7 +57,7 @@ export function ReviewForm({ productId, orderId }: { productId: string; orderId:
           maxLength={2000}
           rows={4}
           className="w-full rounded-md border border-line bg-paper/80 p-3 text-[15px] focus:border-ink focus:outline-none"
-          placeholder="How does it feel to use? How's the glaze in person?"
+          placeholder="How does it feel to use? How's the colour in person?"
         />
       </label>
       {result && !result.ok && <p role="alert" className="text-sm text-danger">{result.message}</p>}

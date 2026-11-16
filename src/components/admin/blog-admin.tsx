@@ -194,7 +194,7 @@ export function BlogEditor({ post, defaultAuthor }: { post: PostForEdit | null; 
 
         <Panel title="Details">
           <Field label="Author" htmlFor="pa"><TextInput id="pa" maxLength={60} value={v.author} onChange={(e) => set("author", e.target.value)} /></Field>
-          <Field label="Topics" htmlFor="ptg" hint="Comma-separated, e.g. glazes, care tips"><TextInput id="ptg" value={tagText} onChange={(e) => setTagText(e.target.value)} /></Field>
+          <Field label="Topics" htmlFor="ptg" hint="Comma-separated, e.g. colours, care tips"><TextInput id="ptg" value={tagText} onChange={(e) => setTagText(e.target.value)} /></Field>
           <Field label="Search title (optional)" htmlFor="pst" hint={`${v.seoTitle.length}/70`}><TextInput id="pst" maxLength={70} value={v.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} /></Field>
           <Field label="Search description (optional)" htmlFor="psd" hint={`${v.seoDescription.length}/170`}><TextArea id="psd" rows={2} maxLength={170} value={v.seoDescription} onChange={(e) => set("seoDescription", e.target.value)} /></Field>
         </Panel>

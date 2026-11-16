@@ -2,14 +2,16 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { CornerDownRight, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
+import { ChevronDown, CornerDownRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
 import {
   deleteCategoryAction,
   deleteGlazeAction,
+  deletePatternAction,
   deleteSizeAction,
   saveCategoryAction,
   saveGlazeAction,
+  savePatternAction,
   saveSizeAction,
 } from "@/actions/admin/catalog.actions";
 import { setCategoryActiveAction } from "@/actions/admin/site.actions";
@@ -56,6 +58,41 @@ export type CategoryRow = {
   hideFields?: string[];
 };
 
+/* ───────────── Collapsible boxes (remembered per browser) ───────────── */
+
+/** Open/closed state of a box on the Categories page, remembered in this browser. */
+function useBoxOpen(id: string) {
+  const [open, setOpen] = useState(true);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(`admin-box:${id}`) === "closed") setOpen(false);
+    } catch {}
+  }, [id]);
+  const toggle = () =>
+    setOpen((o) => {
+      try {
+        localStorage.setItem(`admin-box:${id}`, o ? "closed" : "open");
+      } catch {}
+      return !o;
+    });
+  return [open, toggle, () => setOpen(true)] as const;
+}
+
+function CollapseButton({ open, onClick, label }: { open: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label={`${open ? "Collapse" : "Expand"} ${label}`}
+      title={open ? "Collapse" : "Expand"}
+      className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink"
+    >
+      <ChevronDown className={cn("size-4 transition-transform", !open && "-rotate-90")} aria-hidden />
+    </button>
+  );
+}
+
 const LEVEL_LABEL = ["Category", "Subcategory", "Sub-subcategory"] as const;
 
 /** Which editor is open: an existing row, or a new category (optionally under a parent). */
@@ -64,7 +101,9 @@ type Editing = { id: string } | { newUnder: string | null } | null;
 export function CategoryManager({ categories, glazes = [], sizes = [] }: { categories: CategoryRow[]; glazes?: OptionRef[]; sizes?: OptionRef[] }) {
   const [editing, setEditing] = useState<Editing>(categories.length ? null : { newUnder: null });
   const { pending, error, run } = useMutation();
-  // Possible parents: categories and subcategories (three levels at most).
+  // Two levels: Category → Subcategory. Patterns (Tapered, Round…) are a list of
+  // their own below, like colours and sizes. Subcategories stay possible parents
+  // only so older sub-subcategories can still be edited.
   const parents = categories.filter((c) => c.depth < 2);
   const close = () => setEditing(null);
   const isNewUnder = (parent: string | null) => editing !== null && "newUnder" in editing && editing.newUnder === parent;
@@ -85,12 +124,12 @@ export function CategoryManager({ categories, glazes = [], sizes = [] }: { categ
           <p className="font-medium">
             {c.name}
             {c.depth > 0 && <Pill tone="muted" className="ml-2">{LEVEL_LABEL[c.depth]}</Pill>}
-            {c.productsInChildrenOnly && c.childCount > 0 && <Pill tone="info" className="ml-2">Choose first</Pill>}
+            {c.depth === 2 && <Pill tone="info" className="ml-2">Old setup: use Patterns</Pill>}
             {!c.isActive && <Pill tone="muted" className="ml-2">Hidden</Pill>}
           </p>
           <p className="text-xs text-muted">
             /category/{c.slug} · {c.productCount} product{c.productCount === 1 ? "" : "s"}
-            {c.depth < 2 && ` · ${c.childCount} ${c.depth === 0 ? "subcategor" : "sub-subcategor"}${c.childCount === 1 ? "y" : "ies"}`} · order {c.sortOrder}
+            {c.depth === 0 && ` · ${c.childCount} subcategor${c.childCount === 1 ? "y" : "ies"}`} · order {c.sortOrder}
           </p>
         </div>
         {/* Quick on/off: hidden categories (and everything under them) disappear from the store */}
@@ -106,9 +145,9 @@ export function CategoryManager({ categories, glazes = [], sizes = [] }: { categ
         >
           <span className={cn("inline-block size-5 rounded-full bg-white shadow transition-transform duration-300", c.isActive ? "translate-x-[22px]" : "translate-x-0.5")} />
         </button>
-        {c.depth < 2 && (
+        {c.depth === 0 && (
           <Button size="sm" variant="quiet" onClick={() => setEditing({ newUnder: c.id })} disabled={isNewUnder(c.id)}>
-            <Plus /> {c.depth === 0 ? "Subcategory" : "Sub-subcategory"}
+            <Plus /> Subcategory
           </Button>
         )}
         <button className={iconBtn} aria-label={`Edit ${c.name}`} onClick={() => setEditing({ id: c.id })}><Pencil className="size-4" /></button>
@@ -124,15 +163,19 @@ export function CategoryManager({ categories, glazes = [], sizes = [] }: { categ
     );
 
   const tops = categories.filter((c) => c.depth === 0);
+  const [boxOpen, toggleBox, openBox] = useBoxOpen("categories");
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
-        <div>
-          <h2 className="font-sans text-[15px] font-semibold">Categories, subcategories &amp; sub-subcategories</h2>
-          <p className="text-xs text-muted">Up to three levels, e.g. Ceramics → Mugs → Tapered. Sub-subcategories never appear in the header menu.</p>
+      <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
+        <CollapseButton open={boxOpen} onClick={toggleBox} label="categories" />
+        <div className="min-w-0 flex-1">
+          <h2 className="font-sans text-[15px] font-semibold">Categories &amp; subcategories</h2>
+          <p className="text-xs text-muted">Two levels, e.g. Ceramics → Mugs. Styles like Tapered or Round go in <a href="#patterns" className="underline">Patterns</a> below, like colours and sizes.</p>
         </div>
-        <Button size="sm" onClick={() => setEditing({ newUnder: null })} disabled={isNewUnder(null)}><Plus /> Add category</Button>
+        <Button size="sm" onClick={() => { openBox(); setEditing({ newUnder: null }); }} disabled={isNewUnder(null)}><Plus /> Add category</Button>
       </div>
+      {boxOpen && (
+        <>
       {isNewUnder(null) && editorFor({ nextOrder: tops.length + 1 })}
       <ul>
         {categories.map((c) => [
@@ -144,6 +187,8 @@ export function CategoryManager({ categories, glazes = [], sizes = [] }: { categ
       </ul>
       {categories.length === 0 && !isNewUnder(null) && <p className="px-5 py-8 text-center text-sm text-muted">No categories yet.</p>}
       {error && <p role="alert" className="px-5 pb-4 text-sm text-danger">{error}</p>}
+        </>
+      )}
     </div>
   );
 }
@@ -173,7 +218,7 @@ function CategoryEditor({
   // Image folder: categories/<parent>/<subcategory>/… following the chosen parent.
   const categoryPath = [parentRow?.depth === 1 ? parentRow.parentName : "", parentRow?.name ?? "", f.slug || slugify(f.name) || "new-category"].filter(Boolean);
   // A category with children can only move where the tree stays within three levels.
-  const parentOptions = parents.filter((p) => p.id !== initial?.id && p.parentId !== initial?.id && (!initial?.childCount || p.depth === 0) && !(initial?.depth === 0 && initial.childCount > 0));
+  const parentOptions = parents.filter((p) => (p.depth === 0 || p.id === initial?.parentId) && p.id !== initial?.id && p.parentId !== initial?.id && (!initial?.childCount || p.depth === 0) && !(initial?.depth === 0 && initial.childCount > 0));
   const canHaveParent = !(initial?.depth === 0 && (initial?.childCount ?? 0) > 0);
   const o = f.options;
   const setO = (patch: Partial<typeof o>) => setF((s) => ({ ...s, options: { ...s.options, ...patch } }));
@@ -206,7 +251,7 @@ function CategoryEditor({
           </Select>
         </Field>
         <Field label="Sort order" htmlFor={`co-${key}`} hint="Lower shows first">
-          <TextInput id={`co-${key}`} type="number" min={0} value={f.sortOrder} onChange={(e) => setF((s) => ({ ...s, sortOrder: Number(e.target.value) }))} />
+          <TextInput id={`co-${key}`} type="number" min={1} value={f.sortOrder} onChange={(e) => setF((s) => ({ ...s, sortOrder: Number(e.target.value) }))} />
         </Field>
       </div>
       <Field label="Description" htmlFor={`cd-${key}`} hint="Shown at the top of the category page.">
@@ -220,25 +265,18 @@ function CategoryEditor({
         </div>
         <div className="space-y-3">
           <Toggle label="Visible in store" description="Hidden categories (and everything under them) don't appear in menus." checked={f.isActive} onChange={(isActive) => setF((s) => ({ ...s, isActive }))} />
-          {level < 2 && (
-            <Toggle
-              label="Customers choose a sub-subcategory first"
-              description="E.g. Mugs → Tapered / Round / Classic: the page shows those first and lists products only after one is chosen."
-              checked={f.productsInChildrenOnly}
-              onChange={(productsInChildrenOnly) => setF((s) => ({ ...s, productsInChildrenOnly }))}
-            />
-          )}
+
         </div>
       </div>
 
       {/* Product options for this category (sub-levels inherit what they leave empty) */}
       <details className="rounded-md border border-line bg-paper/60 p-4" open={Boolean(o.glazeLabel || o.sizeLabel || o.glazeStyle || o.allowedGlazes.length || o.allowedSizes.length)}>
         <summary className="cursor-pointer text-sm font-semibold">Product options in this category</summary>
-        <p className="mt-1 text-xs text-muted">Labels and choices on product pages, e.g. &quot;Glaze&quot; for mugs, &quot;Colour&quot; for kits. Empty = same as the parent category.</p>
+        <p className="mt-1 text-xs text-muted">Labels and choices on product pages, e.g. &quot;Colour&quot; for mugs, &quot;Paint colour&quot; for kits. Empty = same as the parent category.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <Field label="Glaze option name" htmlFor={`gl-${key}`} hint='Default "Glaze"'><TextInput id={`gl-${key}`} maxLength={30} placeholder="Glaze" value={o.glazeLabel} onChange={(e) => setO({ glazeLabel: e.target.value })} /></Field>
+          <Field label="Colour option name" htmlFor={`gl-${key}`} hint='Default "Colour"'><TextInput id={`gl-${key}`} maxLength={30} placeholder="Colour" value={o.glazeLabel} onChange={(e) => setO({ glazeLabel: e.target.value })} /></Field>
           <Field label="Size option name" htmlFor={`sl-${key}`} hint='Default "Size"'><TextInput id={`sl-${key}`} maxLength={30} placeholder="Size" value={o.sizeLabel} onChange={(e) => setO({ sizeLabel: e.target.value })} /></Field>
-          <Field label="Show glazes as" htmlFor={`gs-${key}`}>
+          <Field label="Show colours as" htmlFor={`gs-${key}`}>
             <Select id={`gs-${key}`} value={o.glazeStyle} onChange={(e) => setO({ glazeStyle: e.target.value as typeof o.glazeStyle })}>
               <option value="">Same as parent</option>
               <option value="photo">Product photos (Nibbea style)</option>
@@ -249,7 +287,7 @@ function CategoryEditor({
         </div>
         {glazes.length > 0 && (
           <fieldset className="mt-4">
-            <legend className="mb-2 text-sm font-medium">Glazes offered <span className="font-normal text-muted">(none ticked = all)</span></legend>
+            <legend className="mb-2 text-sm font-medium">Colours offered <span className="font-normal text-muted">(none ticked = all)</span></legend>
             <div className="flex flex-wrap gap-2">
               {glazes.map((g) => (
                 <label key={g.id} className="inline-flex items-center gap-2 rounded-pill border border-line px-3 py-1.5 text-sm">
@@ -304,12 +342,16 @@ export type GlazeRow = { id: string; name: string; slug: string; hex: string; fi
 export function GlazeManager({ glazes }: { glazes: GlazeRow[] }) {
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const { pending, error, run } = useMutation();
+  const [boxOpen, toggleBox, openBox] = useBoxOpen("colours");
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-        <h2 className="font-sans text-[15px] font-semibold">Colors</h2>
-        <Button size="sm" variant="secondary" onClick={() => setEditing("new")} disabled={editing === "new"}><Plus /> Add color</Button>
+      <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+        <CollapseButton open={boxOpen} onClick={toggleBox} label="colours" />
+        <h2 className="flex-1 font-sans text-[15px] font-semibold">Colours</h2>
+        <Button size="sm" variant="secondary" onClick={() => { openBox(); setEditing("new"); }} disabled={editing === "new"}><Plus /> Add colour</Button>
       </div>
+      {boxOpen && (
+        <>
       {editing === "new" && <GlazeEditor onDone={() => setEditing(null)} />}
       <ul>
         {glazes.map((g) =>
@@ -323,15 +365,17 @@ export function GlazeManager({ glazes }: { glazes: GlazeRow[] }) {
                 <p className="text-xs capitalize text-muted">{g.finish} · {g.hex}</p>
               </div>
               <button className={iconBtn} aria-label={`Edit ${g.name}`} onClick={() => setEditing(g.id)}><Pencil className="size-4" /></button>
-              <button className={cn(iconBtn, "hover:text-danger")} aria-label={`Delete ${g.name}`} disabled={pending} onClick={() => confirm(`Delete glaze “${g.name}”?`) && run(() => deleteGlazeAction(g.id))}>
+              <button className={cn(iconBtn, "hover:text-danger")} aria-label={`Delete ${g.name}`} disabled={pending} onClick={() => confirm(`Delete colour “${g.name}”?`) && run(() => deleteGlazeAction(g.id))}>
                 <Trash2 className="size-4" />
               </button>
             </li>
           ),
         )}
       </ul>
-      {glazes.length === 0 && editing !== "new" && <p className="px-5 py-8 text-center text-sm text-muted">No glazes yet.</p>}
+      {glazes.length === 0 && editing !== "new" && <p className="px-5 py-8 text-center text-sm text-muted">No colours yet.</p>}
       {error && <p role="alert" className="px-5 pb-4 text-sm text-danger">{error}</p>}
+        </>
+      )}
     </div>
   );
 }
@@ -343,10 +387,10 @@ function GlazeEditor({ initial, onDone }: { initial?: GlazeRow; onDone: () => vo
   return (
     <form className="space-y-4 border-b border-line bg-surface/40 px-5 py-5" onSubmit={(e) => { e.preventDefault(); run(() => saveGlazeAction(initial?.id ?? null, f), onDone); }}>
       <div className="grid gap-4 sm:grid-cols-[1fr_140px_140px]">
-        <Field label="Name" htmlFor={`gn-${id}`}>
+        <Field label="Colour name" htmlFor={`gn-${id}`}>
           <TextInput id={`gn-${id}`} required value={f.name} onChange={(e) => setF((s) => ({ ...s, name: e.target.value, slug: initial ? s.slug : slugify(e.target.value) }))} />
         </Field>
-        <Field label="Colour" htmlFor={`gh-${id}`}>
+        <Field label="Colour code" htmlFor={`gh-${id}`}>
           <div className="flex gap-2">
             <input aria-label="Pick colour" type="color" value={f.hex} onChange={(e) => setF((s) => ({ ...s, hex: e.target.value }))} className="h-touch w-12 cursor-pointer rounded-md border border-line bg-paper p-1" />
             <TextInput id={`gh-${id}`} value={f.hex} onChange={(e) => setF((s) => ({ ...s, hex: e.target.value }))} className="font-mono" />
@@ -360,7 +404,7 @@ function GlazeEditor({ initial, onDone }: { initial?: GlazeRow; onDone: () => vo
       </div>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving…" : "Save glaze"}</Button>
+        <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving…" : "Save colour"}</Button>
         <Button type="button" size="sm" variant="quiet" onClick={onDone}>Cancel</Button>
       </div>
     </form>
@@ -374,12 +418,16 @@ export type SizeRow = { id: string; label: string; slug: string; sortOrder: numb
 export function SizeManager({ sizes }: { sizes: SizeRow[] }) {
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const { pending, error, run } = useMutation();
+  const [boxOpen, toggleBox, openBox] = useBoxOpen("sizes");
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-        <h2 className="font-sans text-[15px] font-semibold">Sizes</h2>
-        <Button size="sm" variant="secondary" onClick={() => setEditing("new")} disabled={editing === "new"}><Plus /> Add size</Button>
+      <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+        <CollapseButton open={boxOpen} onClick={toggleBox} label="sizes" />
+        <h2 className="flex-1 font-sans text-[15px] font-semibold">Sizes</h2>
+        <Button size="sm" variant="secondary" onClick={() => { openBox(); setEditing("new"); }} disabled={editing === "new"}><Plus /> Add size</Button>
       </div>
+      {boxOpen && (
+        <>
       {editing === "new" && <SizeEditor onDone={() => setEditing(null)} nextOrder={sizes.length + 1} />}
       <ul>
         {sizes.map((s) =>
@@ -401,6 +449,8 @@ export function SizeManager({ sizes }: { sizes: SizeRow[] }) {
       </ul>
       {sizes.length === 0 && editing !== "new" && <p className="px-5 py-8 text-center text-sm text-muted">No sizes yet.</p>}
       {error && <p role="alert" className="px-5 pb-4 text-sm text-danger">{error}</p>}
+        </>
+      )}
     </div>
   );
 }
@@ -415,13 +465,84 @@ function SizeEditor({ initial, onDone, nextOrder }: { initial?: SizeRow; onDone:
         <Field label="Label" htmlFor={`sl-${id}`} hint="e.g. Small, 250 ml">
           <TextInput id={`sl-${id}`} required value={f.label} onChange={(e) => setF((s) => ({ ...s, label: e.target.value, slug: initial ? s.slug : slugify(e.target.value) }))} />
         </Field>
-        <Field label="Sort order" htmlFor={`so-${id}`}>
-          <TextInput id={`so-${id}`} type="number" min={0} value={f.sortOrder} onChange={(e) => setF((s) => ({ ...s, sortOrder: Number(e.target.value) }))} />
+        <Field label="Sort order" htmlFor={`so-${id}`} hint="Position in the list; the others move up or down">
+          <TextInput id={`so-${id}`} type="number" min={1} value={f.sortOrder} onChange={(e) => setF((s) => ({ ...s, sortOrder: Number(e.target.value) }))} />
         </Field>
       </div>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving…" : "Save size"}</Button>
+        <Button type="button" size="sm" variant="quiet" onClick={onDone}>Cancel</Button>
+      </div>
+    </form>
+  );
+}
+
+/* ───────────── Patterns (Tapered, Round, Classic…) ───────────── */
+
+export type PatternRow = { id: string; name: string; slug: string; sortOrder: number };
+
+/** Like sizes: a simple list. Products pick one; category pages show it as the Pattern filter. */
+export function PatternManager({ patterns }: { patterns: PatternRow[] }) {
+  const [editing, setEditing] = useState<string | "new" | null>(null);
+  const { pending, error, run } = useMutation();
+  const [boxOpen, toggleBox, openBox] = useBoxOpen("patterns");
+  return (
+    <div>
+      <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+        <CollapseButton open={boxOpen} onClick={toggleBox} label="patterns" />
+        <div className="min-w-0 flex-1">
+          <h2 className="font-sans text-[15px] font-semibold">Patterns</h2>
+          <p className="text-xs text-muted">Styles like Tapered, Round, Classic. Shown as the Pattern filter on category pages.</p>
+        </div>
+        <Button size="sm" variant="secondary" onClick={() => { openBox(); setEditing("new"); }} disabled={editing === "new"}><Plus /> Add pattern</Button>
+      </div>
+      {boxOpen && (
+        <>
+      {editing === "new" && <PatternEditor onDone={() => setEditing(null)} nextOrder={patterns.length + 1} />}
+      <ul>
+        {patterns.map((p) =>
+          editing === p.id ? (
+            <li key={p.id}><PatternEditor initial={p} onDone={() => setEditing(null)} nextOrder={p.sortOrder} /></li>
+          ) : (
+            <li key={p.id} className={rowCls}>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{p.name}</p>
+                <p className="text-xs text-muted">order {p.sortOrder}</p>
+              </div>
+              <button className={iconBtn} aria-label={`Edit ${p.name}`} onClick={() => setEditing(p.id)}><Pencil className="size-4" /></button>
+              <button className={cn(iconBtn, "hover:text-danger")} aria-label={`Delete ${p.name}`} disabled={pending} onClick={() => confirm(`Delete pattern “${p.name}”?`) && run(() => deletePatternAction(p.id))}>
+                <Trash2 className="size-4" />
+              </button>
+            </li>
+          ),
+        )}
+      </ul>
+      {patterns.length === 0 && editing !== "new" && <p className="px-5 py-8 text-center text-sm text-muted">No patterns yet.</p>}
+      {error && <p role="alert" className="px-5 pb-4 text-sm text-danger">{error}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PatternEditor({ initial, onDone, nextOrder }: { initial?: PatternRow; onDone: () => void; nextOrder: number }) {
+  const { pending, error, run } = useMutation();
+  const [f, setF] = useState({ name: initial?.name ?? "", slug: initial?.slug ?? "", sortOrder: initial?.sortOrder ?? nextOrder });
+  const id = initial?.id ?? "new";
+  return (
+    <form className="space-y-4 border-b border-line bg-surface/40 px-5 py-5" onSubmit={(e) => { e.preventDefault(); run(() => savePatternAction(initial?.id ?? null, f), onDone); }}>
+      <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
+        <Field label="Pattern name" htmlFor={`pn-${id}`} hint={initial ? "Renaming also updates the products that use it" : "e.g. Tapered, Round, Classic"}>
+          <TextInput id={`pn-${id}`} required value={f.name} onChange={(e) => setF((s) => ({ ...s, name: e.target.value, slug: initial ? s.slug : slugify(e.target.value) }))} />
+        </Field>
+        <Field label="Sort order" htmlFor={`po-${id}`} hint="Position in the list">
+          <TextInput id={`po-${id}`} type="number" min={1} value={f.sortOrder} onChange={(e) => setF((s) => ({ ...s, sortOrder: Number(e.target.value) }))} />
+        </Field>
+      </div>
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving…" : "Save pattern"}</Button>
         <Button type="button" size="sm" variant="quiet" onClick={onDone}>Cancel</Button>
       </div>
     </form>

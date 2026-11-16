@@ -102,7 +102,7 @@ export function PagesTab({ initial, theme }: { initial: SiteConfig["pages"]; the
           columns={2}
           options={[
             { value: "classic", label: "Classic", hint: "Gallery with thumbnails below, title first" },
-            { value: "showcase", label: "Showcase (Nibbea)", hint: "Labelled thumbnails, glaze photos, quantity, Add to Cart + Buy Now" },
+            { value: "showcase", label: "Showcase (Nibbea)", hint: "Labelled thumbnails, colour photos, quantity, Add to Cart + Buy Now" },
           ]}
         />
         <Choice
