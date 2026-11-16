@@ -106,6 +106,22 @@ export function CategoryManager({ categories, glazes = [], sizes = [] }: { categ
   // only so older sub-subcategories can still be edited.
   const parents = categories.filter((c) => c.depth < 2);
   const close = () => setEditing(null);
+  // Tree starts collapsed: only main categories show; the arrow opens a category's subcategories.
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const toggleExpanded = (id: string) =>
+    setExpanded((e) => {
+      const n = new Set(e);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  // Visible when every ancestor is expanded.
+  const visible = (c: CategoryRow) => {
+    for (let p = c.parentId, n = 0; p && n < 3; p = byId.get(p)?.parentId ?? null, n++) if (!expanded.has(p)) return false;
+    return true;
+  };
+  const allOpen = categories.filter((c) => c.childCount > 0).every((c) => expanded.has(c.id));
   const isNewUnder = (parent: string | null) => editing !== null && "newUnder" in editing && editing.newUnder === parent;
   const editorFor = (props: { initial?: CategoryRow; defaultParent?: string | null; nextOrder: number }) => (
     <CategoryEditor {...props} parents={parents} glazes={glazes} sizes={sizes} onDone={close} />
@@ -117,6 +133,20 @@ export function CategoryManager({ categories, glazes = [], sizes = [] }: { categ
     ) : (
       <li key={c.id} className={cn(rowCls, c.depth === 1 && "bg-surface/30 pl-10 md:pl-14", c.depth === 2 && "bg-surface/50 pl-16 md:pl-24")}>
         {c.depth > 0 && <CornerDownRight className="-ml-6 size-4 shrink-0 text-muted" aria-hidden />}
+        {c.childCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => toggleExpanded(c.id)}
+            aria-expanded={expanded.has(c.id)}
+            aria-label={`${expanded.has(c.id) ? "Hide" : "Show"} subcategories of ${c.name}`}
+            title={expanded.has(c.id) ? "Hide subcategories" : "Show subcategories"}
+            className="-mx-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface hover:text-ink"
+          >
+            <ChevronDown className={cn("size-4 transition-transform", !expanded.has(c.id) && "-rotate-90")} aria-hidden />
+          </button>
+        ) : (
+          c.depth === 0 && <span className="-mx-1 size-8 shrink-0" aria-hidden />
+        )}
         <span className={cn("relative shrink-0 overflow-hidden rounded-md bg-surface", c.depth === 0 ? "size-12" : c.depth === 1 ? "size-10" : "size-8")}>
           {c.image && <Image src={c.image.url} alt="" fill sizes="48px" className="object-cover" />}
         </span>
@@ -146,7 +176,7 @@ export function CategoryManager({ categories, glazes = [], sizes = [] }: { categ
           <span className={cn("inline-block size-5 rounded-full bg-white shadow transition-transform duration-300", c.isActive ? "translate-x-[22px]" : "translate-x-0.5")} />
         </button>
         {c.depth === 0 && (
-          <Button size="sm" variant="quiet" onClick={() => setEditing({ newUnder: c.id })} disabled={isNewUnder(c.id)}>
+          <Button size="sm" variant="quiet" onClick={() => { setExpanded((e) => new Set(e).add(c.id)); setEditing({ newUnder: c.id }); }} disabled={isNewUnder(c.id)}>
             <Plus /> Subcategory
           </Button>
         )}
@@ -172,13 +202,18 @@ export function CategoryManager({ categories, glazes = [], sizes = [] }: { categ
           <h2 className="font-sans text-[15px] font-semibold">Categories &amp; subcategories</h2>
           <p className="text-xs text-muted">Two levels, e.g. Ceramics → Mugs. Styles like Tapered or Round go in <a href="#patterns" className="underline">Patterns</a> below, like colours and sizes.</p>
         </div>
+        {categories.some((c) => c.childCount > 0) && boxOpen && (
+          <Button size="sm" variant="quiet" onClick={() => setExpanded(allOpen ? new Set() : new Set(categories.filter((c) => c.childCount > 0).map((c) => c.id)))}>
+            {allOpen ? "Collapse all" : "Expand all"}
+          </Button>
+        )}
         <Button size="sm" onClick={() => { openBox(); setEditing({ newUnder: null }); }} disabled={isNewUnder(null)}><Plus /> Add category</Button>
       </div>
       {boxOpen && (
         <>
       {isNewUnder(null) && editorFor({ nextOrder: tops.length + 1 })}
       <ul>
-        {categories.map((c) => [
+        {categories.filter(visible).map((c) => [
           row(c),
           isNewUnder(c.id) ? (
             <li key={`new-${c.id}`}>{editorFor({ defaultParent: c.id, nextOrder: categories.filter((k) => k.parentId === c.id).length + 1 })}</li>
@@ -270,8 +305,11 @@ function CategoryEditor({
       </div>
 
       {/* Product options for this category (sub-levels inherit what they leave empty) */}
-      <details className="rounded-md border border-line bg-paper/60 p-4" open={Boolean(o.glazeLabel || o.sizeLabel || o.glazeStyle || o.allowedGlazes.length || o.allowedSizes.length)}>
-        <summary className="cursor-pointer text-sm font-semibold">Product options in this category</summary>
+      <details className="rounded-md border border-line bg-paper/60 p-4">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Product options in this category
+          {(o.glazeLabel || o.sizeLabel || o.glazeStyle || o.allowedGlazes.length > 0 || o.allowedSizes.length > 0) && <span className="ml-2 font-normal text-muted">(customised)</span>}
+        </summary>
         <p className="mt-1 text-xs text-muted">Labels and choices on product pages, e.g. &quot;Colour&quot; for mugs, &quot;Paint colour&quot; for kits. Empty = same as the parent category.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <Field label="Colour option name" htmlFor={`gl-${key}`} hint='Default "Colour"'><TextInput id={`gl-${key}`} maxLength={30} placeholder="Colour" value={o.glazeLabel} onChange={(e) => setO({ glazeLabel: e.target.value })} /></Field>
@@ -312,8 +350,15 @@ function CategoryEditor({
       </details>
 
       {/* Extra product-form fields for this category (sub-levels inherit them) */}
-      <details className="rounded-md border border-line bg-paper/60 p-4" open={f.fields.length > 0 || f.hideFields.length > 0}>
-        <summary className="cursor-pointer text-sm font-semibold">Product form fields in this category</summary>
+      <details className="rounded-md border border-line bg-paper/60 p-4">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Product form fields in this category
+          {(f.fields.length > 0 || f.hideFields.length > 0) && (
+            <span className="ml-2 font-normal text-muted">
+              ({[f.fields.length && `${f.fields.length} field${f.fields.length === 1 ? "" : "s"}`, f.hideFields.length && `${f.hideFields.length} hidden`].filter(Boolean).join(", ")})
+            </span>
+          )}
+        </summary>
         <div className="mt-4">
           <CategoryFieldsEditor
             fields={f.fields}
