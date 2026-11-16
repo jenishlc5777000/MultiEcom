@@ -125,8 +125,6 @@ export function ContentTab({ initial, products = [] }: { initial: SiteConfig["co
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Categories: small line" htmlFor="s1">{input("s1", c.sections.categoriesEyebrow, (x) => sec({ categoriesEyebrow: x }), 60)}</Field>
           <Field label="Categories: title" htmlFor="s2">{input("s2", c.sections.categoriesTitle, (x) => sec({ categoriesTitle: x }), 80)}</Field>
-          <Field label="Ready to ship: small line" htmlFor="s3">{input("s3", c.sections.readyEyebrow, (x) => sec({ readyEyebrow: x }), 60)}</Field>
-          <Field label="Ready to ship: title" htmlFor="s4">{input("s4", c.sections.readyTitle, (x) => sec({ readyTitle: x }), 80)}</Field>
           <Field label="New arrivals: small line" htmlFor="s5">{input("s5", c.sections.newEyebrow, (x) => sec({ newEyebrow: x }), 60)}</Field>
           <Field label="New arrivals: title" htmlFor="s6">{input("s6", c.sections.newTitle, (x) => sec({ newTitle: x }), 80)}</Field>
         </div>

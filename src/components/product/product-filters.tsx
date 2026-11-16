@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
 
-export type FilterValues = { availability?: string; min?: string; max?: string; sort?: string; cat?: string };
+export type FilterValues = { availability?: string; min?: string; max?: string; sort?: string; cat?: string; pattern?: string };
 type CategoryOption = { slug: string; name: string; depth: 0 | 1 };
 
 const SORT_LABELS: Record<string, LabelKey> = {
@@ -31,6 +31,7 @@ export function ProductFilters({
   show = { availability: true, price: true, sort: true },
   sorts = ["new", "price-asc", "price-desc", "rating"],
   categories,
+  patterns,
 }: {
   action: string;
   values: FilterValues;
@@ -40,11 +41,13 @@ export function ProductFilters({
   show?: { availability?: boolean; price?: boolean; sort?: boolean };
   sorts?: string[];
   categories?: CategoryOption[];
+  /** Pattern choices (from the products' pattern names); hidden when empty. */
+  patterns?: string[];
 }) {
   const t = useT();
   const form = useRef<HTMLFormElement>(null);
   const submit = () => form.current?.requestSubmit();
-  const active = Boolean(values.availability || values.min || values.max || values.cat);
+  const active = Boolean(values.availability || values.min || values.max || values.cat || values.pattern);
   const clearHref = `${action}${Object.keys(hidden).length ? `?${new URLSearchParams(hidden)}` : ""}`;
   const field = "min-h-10 w-full rounded-md border border-line bg-paper px-3 text-sm focus:border-ink focus:outline-none";
   const sidebar = layout === "sidebar";
@@ -62,6 +65,16 @@ export function ProductFilters({
           <select name="cat" defaultValue={values.cat ?? ""} onChange={submit} className={field}>
             <option value="">{t("nav.allCategories")}</option>
             {categories.map((c) => <option key={c.slug} value={c.slug}>{c.depth ? `  ↳ ${c.name}` : c.name}</option>)}
+          </select>
+        </label>
+      )}
+
+      {patterns && patterns.length > 0 && (
+        <label className={cn("block space-y-1.5", !sidebar && "min-w-40")}>
+          <span className="text-xs font-medium text-muted">{t("list.pattern")}</span>
+          <select name="pattern" defaultValue={values.pattern ?? ""} onChange={submit} className={field}>
+            <option value="">{t("list.allPatterns")}</option>
+            {patterns.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
         </label>
       )}

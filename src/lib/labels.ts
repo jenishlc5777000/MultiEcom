@@ -81,6 +81,8 @@ export const LABELS = L({
   "product.size": { g: "product", d: "Size", hint: "Used when the category has no own name for this option" },
   // Lists, filters & sorting
   "list.filterCategory": { g: "list", d: "Category" },
+  "list.pattern": { g: "list", d: "Pattern" },
+  "list.allPatterns": { g: "list", d: "All patterns" },
   "list.availability": { g: "list", d: "Availability" },
   "list.any": { g: "list", d: "Any" },
   "list.readyToShip": { g: "list", d: "Ready to ship" },

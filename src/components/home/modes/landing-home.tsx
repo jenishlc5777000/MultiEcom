@@ -2,11 +2,11 @@ import { RichTitle } from "@/components/content/rich-title";
 import { CategoryShowcase } from "@/components/home/category-showcase";
 import { ClosingCta } from "@/components/home/closing-cta";
 import { Hero } from "@/components/home/hero";
+import { ProcessSection } from "@/components/home/process-section";
 import { PromiseStrip } from "@/components/home/promise-strip";
 import { SectionHeading } from "@/components/home/section-heading";
 import { StorySection } from "@/components/home/story-section";
 import { Marquee } from "@/components/motion/marquee";
-import { ProductCarousel } from "@/components/product/product-carousel";
 import { ProductGrid } from "@/components/product/product-card";
 import type { HomeData } from "./types";
 
@@ -16,11 +16,6 @@ export function LandingHome(d: HomeData) {
   const { sections: on } = d.site.design;
   const t = d.site.content.sections;
 
-  const readyCarousel = on.readyToShip && (
-    <div data-studio="ready-to-ship" className="container">
-      <ProductCarousel eyebrow={t.readyEyebrow} title={t.readyTitle.replace(/\*/g, "")} products={d.readyStock} href="/category" />
-    </div>
-  );
   const newArrivals = on.newArrivals && d.newest.length > 0 && (
     <section data-studio="new-arrivals" className="container space-y-10">
       <SectionHeading eyebrow={t.newEyebrow} title={<RichTitle text={t.newTitle} />} href="/category" />
@@ -28,6 +23,8 @@ export function LandingHome(d: HomeData) {
     </section>
   );
   const story = on.story && <StorySection image={d.storyImage} content={d.site.content.story} />;
+  // Studio → Content → "The process" (shown when switched on in Studio → Layout → Sections).
+  const process = on.process && <ProcessSection content={d.site.content.process} />;
 
   return (
     <div className="space-y-24 md:space-y-36">
@@ -43,13 +40,13 @@ export function LandingHome(d: HomeData) {
       {layout.sections === "shop-first" ? (
         <>
           {newArrivals}
-          {readyCarousel}
           {story}
+          {process}
         </>
       ) : (
         <>
-          {readyCarousel}
           {story}
+          {process}
           {newArrivals}
         </>
       )}

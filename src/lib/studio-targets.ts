@@ -25,7 +25,6 @@ export const STUDIO_TARGETS: Record<string, { name: string; targets: StudioTarge
       { label: "Section title", tab: "content", panel: "content-sections" },
     ],
   },
-  "ready-to-ship": { name: "Ready to ship", targets: [{ label: "Section title", tab: "content", panel: "content-sections" }, { label: "Show / hide", tab: "layout", panel: "sections" }] },
   "new-arrivals": { name: "New arrivals", targets: [{ label: "Section title", tab: "content", panel: "content-sections" }, { label: "Show / hide", tab: "layout", panel: "sections" }] },
   story: { name: "Our story", targets: [{ label: "Story text", tab: "content", panel: "content-story" }, { label: "Show / hide", tab: "layout", panel: "sections" }] },
   process: { name: "The process", targets: [{ label: "Steps", tab: "content", panel: "content-process" }, { label: "Show / hide", tab: "layout", panel: "sections" }] },

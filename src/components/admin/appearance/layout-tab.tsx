@@ -85,14 +85,13 @@ export function LayoutTab({ initial, theme, builder }: { initial: SiteConfig["de
           value={v.sectionOrder}
           onChange={(x) => s.set("sectionOrder", x)}
           options={withTheme(theme.layout.sections === "shop-first" ? "Products first" : "Story first", [
-            { value: "story-first", label: "Story first", hint: "Ready to ship → story → process → new" },
-            { value: "shop-first", label: "Products first", hint: "New → ready to ship → story → process" },
+            { value: "story-first", label: "Story first", hint: "Story → process → new" },
+            { value: "shop-first", label: "Products first", hint: "New → story → process" },
           ])}
         />
         <div className="grid gap-2 sm:grid-cols-2">
           <SwitchRow label="Scrolling ticker" hint="Glaze and category names under the hero" checked={sec.marquee} onChange={(x) => setSec("marquee", x)} />
           <SwitchRow label="Categories" checked={sec.categories} onChange={(x) => setSec("categories", x)} />
-          <SwitchRow label="Ready to ship carousel" checked={sec.readyToShip} onChange={(x) => setSec("readyToShip", x)} />
           <SwitchRow label="Our story" checked={sec.story} onChange={(x) => setSec("story", x)} />
           <SwitchRow label="The process" checked={sec.process} onChange={(x) => setSec("process", x)} />
           <SwitchRow label="New arrivals grid" checked={sec.newArrivals} onChange={(x) => setSec("newArrivals", x)} />

@@ -10,6 +10,8 @@ export const browseParams = z.object({
   sort: z.enum(["relevance", "new", "price-asc", "price-desc", "rating"]).optional().catch(undefined),
   cat: z.string().trim().max(80).regex(/^[a-z0-9-]*$/).optional().catch(undefined),
   q: z.string().trim().max(80).optional().catch(undefined),
+  /** Pattern filter on category pages (e.g. "Tapered"). */
+  pattern: z.string().trim().max(80).optional().catch(undefined),
 });
 export type BrowseParams = z.infer<typeof browseParams>;
 
@@ -20,6 +22,7 @@ export const filterValues = (p: BrowseParams) => ({
   max: p.max !== undefined ? String(p.max) : "",
   sort: p.sort ?? "",
   cat: p.cat ?? "",
+  pattern: p.pattern ?? "",
 });
 
 /** Rebuild a page link keeping the current filters. */

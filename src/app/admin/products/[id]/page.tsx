@@ -3,13 +3,13 @@ import { ProductDangerZone } from "@/components/admin/product-danger-zone";
 import { ProductForm } from "@/components/admin/product-form";
 import { resolveCategoryForms } from "@/lib/category-fields";
 import { PageHeader, ProductStatusPill } from "@/components/admin/ui";
-import { getProductForEdit, listCategoriesAdmin, listGlazesAndSizes } from "@/services/admin/catalog-admin.service";
+import { getProductForEdit, listCategoriesAdmin, listGlazesAndSizes, listPatternNames } from "@/services/admin/catalog-admin.service";
 
 export const metadata = { title: "Edit product" };
 
 export default async function EditProductPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string }> }) {
   const [{ id }, { created }] = await Promise.all([params, searchParams]);
-  const [product, categories, { glazes, sizes }] = await Promise.all([getProductForEdit(id), listCategoriesAdmin(), listGlazesAndSizes()]);
+  const [product, categories, { glazes, sizes }, patternNames] = await Promise.all([getProductForEdit(id), listCategoriesAdmin(), listGlazesAndSizes(), listPatternNames()]);
   if (!product) notFound();
 
   return (
@@ -24,7 +24,8 @@ export default async function EditProductPage({ params, searchParams }: { params
       <ProductForm
         key={id}
         initial={product}
-        categories={categories.map((c) => ({ id: c.id, name: c.label }))}
+        categories={categories.map((c) => ({ id: c.id, name: c.name, label: c.label, parentId: c.parentId, isActive: c.isActive }))}
+        patternNames={patternNames}
         categoryForms={resolveCategoryForms(categories)}
         glazes={glazes.map((g) => ({ id: g.id, name: g.name, hex: g.hex }))}
         sizes={sizes.map((s) => ({ id: s.id, name: s.label }))}

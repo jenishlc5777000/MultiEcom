@@ -40,7 +40,8 @@ const config: Config = {
       },
       fontSize: {
         // Sizes and tracking follow the theme's --display-scale / --tracking-shift (globals.css).
-        display: ["calc(clamp(3rem, 8vw, 7rem) * var(--display-scale, 1))", { lineHeight: "0.95", letterSpacing: "calc(-0.02em + var(--tracking-shift, 0em))" }],
+        // min(…, 13vw) keeps big headlines inside a phone screen even with a large Studio type scale.
+        display: ["min(calc(clamp(2.5rem, 8vw, 7rem) * var(--display-scale, 1)), 13vw)", { lineHeight: "0.95", letterSpacing: "calc(-0.02em + var(--tracking-shift, 0em))" }],
         h1: ["calc(clamp(2.5rem, 5vw, 4rem) * var(--display-scale, 1))", { lineHeight: "1", letterSpacing: "calc(-0.015em + var(--tracking-shift, 0em))" }],
         h2: ["calc(clamp(2rem, 3.6vw, 3rem) * var(--display-scale, 1))", { lineHeight: "1.05", letterSpacing: "calc(-0.01em + var(--tracking-shift, 0em))" }],
         h3: ["1.5rem", { lineHeight: "1.2" }],

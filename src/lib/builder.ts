@@ -198,7 +198,7 @@ export function makeSection(type: SectionType): Section {
 
 /** Turn the current landing page (sections switches + order) into a builder list. */
 export function sectionsFromLanding(on: Record<string, boolean>, order: "story-first" | "shop-first"): Section[] {
-  const mid: SectionType[] = order === "shop-first" ? ["newArrivals", "readyToShip", "story", "process"] : ["readyToShip", "story", "process", "newArrivals"];
+  const mid: SectionType[] = order === "shop-first" ? ["newArrivals", "story", "process"] : ["story", "process", "newArrivals"];
   const flags: Partial<Record<SectionType, boolean>> = {
     marquee: on.marquee, categories: on.categories, readyToShip: on.readyToShip, story: on.story, process: on.process, newArrivals: on.newArrivals, promise: on.promise, closing: on.closingCta,
   };

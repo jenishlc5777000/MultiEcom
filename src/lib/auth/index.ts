@@ -5,13 +5,14 @@ import { connectDB, getMongoClient } from "@/lib/db/connect";
 import { User, type UserRole } from "@/models/User";
 import { buildProviders } from "./providers";
 
-const OWNER_SESSION_MAX_AGE = 24 * 60 * 60;
+/** Every sign-in (customer or owner) lasts 24 hours, then the person must sign in again. */
+const SESSION_MAX_AGE = 24 * 60 * 60;
 
 /** Lazy config: env and DB are only touched when a request needs auth. */
 export const { handlers, auth, signIn, signOut } = NextAuth(async () => ({
   adapter: MongoDBAdapter(getMongoClient),
   providers: await buildProviders(),
-  session: { strategy: "jwt", maxAge: 90 * 24 * 60 * 60 },
+  session: { strategy: "jwt", maxAge: SESSION_MAX_AGE },
   pages: { signIn: "/login", verifyRequest: "/login/verify", error: "/login" },
   events: {
     async signIn({ user }) {
@@ -32,12 +33,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => ({
     async jwt({ token, user, trigger }) {
       if (user) {
         token.role = ((user as { role?: UserRole }).role ?? "customer") as UserRole;
-        if (token.role === "owner") token.ownerSessionStartedAt = Date.now();
+        token.sessionStartedAt = Date.now();
       }
-      if (token.role === "owner") {
-        token.ownerSessionStartedAt ??= Date.now();
-        if (Date.now() - token.ownerSessionStartedAt >= OWNER_SESSION_MAX_AGE * 1000) return null;
-      }
+      // Absolute limit: activity doesn't extend the session past 24 hours from sign-in.
+      // Older tokens without a start time fall back to their issue time.
+      const startedAt = typeof token.sessionStartedAt === "number" ? token.sessionStartedAt : typeof token.iat === "number" ? token.iat * 1000 : Date.now();
+      token.sessionStartedAt = startedAt;
+      if (Date.now() - startedAt >= SESSION_MAX_AGE * 1000) return null;
       // Call `update()` from the client after a role change to refresh the token.
       if (trigger === "update" && token.sub) {
         await connectDB();

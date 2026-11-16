@@ -45,14 +45,16 @@ export const getCategoryBySlug = cache(sharedCache(async (slug: string) => {
 
   const children = depth < 2 ? await Category.find({ parent: c._id, isActive: true }).sort({ sortOrder: 1, name: 1 }).lean() : [];
   const grandChildren = depth === 0 && children.length
-    ? await Category.find({ parent: { $in: children.map((k) => k._id) }, isActive: true }).select("_id").lean()
+    ? await Category.find({ parent: { $in: children.map((k) => k._id) }, isActive: true }).select("_id name").lean()
     : [];
   const siblings = parent ? await Category.find({ parent: parent._id, isActive: true }).sort({ sortOrder: 1, name: 1 }).lean() : [];
   const card = (k: { _id: unknown; name: string; slug: string; image?: unknown; description?: string | null }) => ({ id: String(k._id), name: k.name, slug: k.slug, image: toImage(k.image as never, k.name), description: k.description ?? "" });
 
   // Which links to show above the products.
   let nav: CategoryNav | null = null;
-  if (depth === 0 || (depth === 1 && children.length)) nav = { parent: { name: c.name, slug: c.slug, image: toImage(c.image as never, c.name) }, items: children.map(card) };
+  // Sub-subcategories (Mugs → Tapered / Round…) are not shown as links: they are offered as
+  // values of the Pattern filter instead, next to the products' own pattern names.
+  if (depth === 0) nav = { parent: { name: c.name, slug: c.slug, image: toImage(c.image as never, c.name) }, items: children.map(card) };
   else if (parent) nav = { parent: { name: parent.name, slug: parent.slug, image: toImage((parent as { image?: unknown }).image as never, parent.name) }, items: siblings.map(card) };
 
   // Product options (labels, glaze display, allowed values): nearest category that sets them.
@@ -72,6 +74,8 @@ export const getCategoryBySlug = cache(sharedCache(async (slug: string) => {
     nav,
     requiresChild: Boolean(c.productsInChildrenOnly) && children.length > 0,
     productCategoryIds: [String(c._id), ...children.map((k) => String(k._id)), ...grandChildren.map((k) => String(k._id))],
+    /** Sub-subcategories under this page (older way of grouping by pattern): name → category id. */
+    patternCategories: (depth === 1 ? children : grandChildren).map((k) => ({ id: String(k._id), name: k.name })),
     options: { glazeLabel: pick("glazeLabel"), sizeLabel: pick("sizeLabel"), glazeStyle: pick("glazeStyle") },
   };
 }, "category-by-slug", "catalog"));
@@ -86,6 +90,9 @@ export type BrowseOptions = {
   max?: number;
   sort?: BrowseSort;
   page?: number;
+  /** Pattern filter: products whose pattern name matches, or that sit in a sub-subcategory of that name. */
+  pattern?: string;
+  patternCategoryIds?: string[];
 };
 
 const escapeRx = (q: string) => q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -107,6 +114,12 @@ export async function browseProducts(o: BrowseOptions = {}) {
     if (o.min !== undefined) range.$gte = Math.round(o.min * 100);
     if (o.max !== undefined) range.$lte = Math.round(o.max * 100);
     base.variants = { $elemMatch: { price: range } };
+  }
+  const pattern = o.pattern?.trim();
+  if (pattern) {
+    const byPattern: Record<string, unknown>[] = [{ patternName: new RegExp("^\\s*" + escapeRx(pattern) + "\\s*$", "i") }];
+    if (o.patternCategoryIds?.length) byPattern.push({ category: { $in: o.patternCategoryIds } });
+    base.$and = [{ $or: byPattern }];
   }
   const q = o.q?.trim();
   let sort = o.sort ?? (q ? "relevance" : "new");
@@ -154,6 +167,22 @@ export const getCategoryCounts = cache(sharedCache(async () => {
   }
   return Object.fromEntries(total) as Record<string, number>;
 }, "category-counts", "catalog"));
+
+/**
+ * Pattern filter choices for a category page: the pattern names typed on its
+ * products (Admin → Products → Pattern name) plus any sub-subcategory names,
+ * without duplicates (case-insensitive), A→Z.
+ */
+export const getPatternOptions = cache(sharedCache(async (categoryIds: string[], legacyNames: string[]) => {
+  await connectDB();
+  const names = (await Product.distinct("patternName", { ...PUBLIC, category: { $in: categoryIds } })) as unknown[];
+  const seen = new Map<string, string>();
+  for (const n of [...names, ...legacyNames]) {
+    const v = typeof n === "string" ? n.trim().replace(/\s+/g, " ") : "";
+    if (v && !seen.has(v.toLowerCase())) seen.set(v.toLowerCase(), v);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}, "pattern-options", "catalog"));
 
 export async function getProductsByCategory(categoryIds: string | string[], page = 1, opts: Omit<BrowseOptions, "categoryIds" | "page"> = {}) {
   return browseProducts({ ...opts, categoryIds: Array.isArray(categoryIds) ? categoryIds : [categoryIds], page });

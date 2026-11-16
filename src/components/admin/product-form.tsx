@@ -6,7 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { saveProductAction } from "@/actions/admin/catalog.actions";
 import { Button } from "@/components/ui/button";
-import { AVAILABILITY, PRODUCT_STATUS, PRODUCT_TYPES } from "@/lib/constants";
+import { AVAILABILITY, PRODUCT_STATUS } from "@/lib/constants";
 import { cn, slugify } from "@/lib/utils";
 import type { ProductFormValues } from "@/services/admin/catalog-admin.service";
 import { type CategoryForm } from "@/lib/category-fields";
@@ -14,6 +14,8 @@ import { Field, Select, TextArea, TextInput, Toggle } from "./form";
 import { ImageUploader, type UploadedImage } from "./image-uploader";
 
 type Option = { id: string; name: string };
+/** A category from Admin → Categories (top-level ones are the product "types"). */
+type CategoryOption = Option & { label: string; parentId: string | null; isActive?: boolean };
 type Variant = ProductFormValues["variants"][number] & { key: string };
 
 const LABEL = {
@@ -23,9 +25,10 @@ const LABEL = {
   DRAFT: "Draft (hidden)",
   ACTIVE: "Active (visible in store)",
   ARCHIVED: "Archived (hidden)",
-  CERAMIC: "Ceramic",
-  CRAFT: "Craft kit",
 } as const;
+
+/** Stored product kind, from the top-level category: craft / kit / art categories → CRAFT, the rest → CERAMIC. */
+const kindOf = (root?: { name: string }) => (root && /craft|kit|\bart\b/i.test(root.name) ? "CRAFT" : "CERAMIC");
 
 let keySeed = 0;
 const newKey = () => `v${Date.now()}-${keySeed++}`;
@@ -43,11 +46,14 @@ export function ProductForm({
   glazes,
   sizes,
   categoryForms = {},
+  patternNames = [],
 }: {
   initial: ProductFormValues | null;
   /** Category id → extra fields and hidden built-in inputs (Admin → Categories). */
   categoryForms?: Record<string, CategoryForm>;
-  categories: Option[];
+  categories: CategoryOption[];
+  /** Pattern names already used on other products (suggestions). */
+  patternNames?: string[];
   glazes: (Option & { hex: string })[];
   sizes: Option[];
 }) {
@@ -58,12 +64,29 @@ export function ProductForm({
   const [slugTouched, setSlugTouched] = useState(Boolean(initial));
   const [v, setV] = useState(() => ({
     ...(initial ?? EMPTY),
-    category: initial?.category ?? categories[0]?.id ?? "",
+    category: initial?.category ?? "",
     // Initial rows get deterministic keys so server and client render identical ids (no hydration mismatch).
     variants: (initial?.variants.length ? initial.variants : [blankVariant("init-0")]).map((x, i) => ({ ...x, key: x.id || `init-${i}` })) as Variant[],
   }));
   const [kitText, setKitText] = useState((initial?.kitContents ?? []).join("\n"));
   const [tagText, setTagText] = useState((initial?.tags ?? []).join(", "));
+
+  // Type = top-level category; Category = that type or one of its subcategories (always the live list).
+  const byId = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const rootOf = (id: string) => {
+    let c = byId.get(id);
+    for (let n = 0; c?.parentId && byId.has(c.parentId) && n < 5; n++) c = byId.get(c.parentId);
+    return c;
+  };
+  const types = categories.filter((c) => !c.parentId);
+  const root = rootOf(v.category);
+  const inType = root ? categories.filter((c) => rootOf(c.id)?.id === root.id) : [];
+  const kind = kindOf(root);
+  const chooseType = (rootId: string) => {
+    setSaved(false);
+    // Pick the type itself; its own fields (and inherited ones) show straight away.
+    setV((s) => ({ ...s, category: rootId, type: kindOf(byId.get(rootId)) as typeof s.type }));
+  };
 
   const form = categoryForms[v.category] ?? { fields: [], hide: [], allowedGlazes: [], allowedSizes: [] };
   // Only the glazes / sizes allowed for this category (a value already chosen stays listed).
@@ -90,8 +113,14 @@ export function ProductForm({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!v.category) {
+      setError("Choose a type and category first.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     const payload = {
       ...v,
+      type: kind as typeof v.type,
       kitContents: kitText.split("\n").map((s) => s.trim()).filter(Boolean),
       tags: tagText.split(",").map((s) => s.trim()).filter(Boolean),
       variants: v.variants.map(({ key: _key, ...rest }) => ({ ...rest, id: rest.id || undefined, sku: rest.sku || suggestSku({ ...rest, key: _key }) })),
@@ -147,15 +176,21 @@ export function ProductForm({
                   }}
                 />
               </Field>
-              <Field label="Type" htmlFor="type">
-                <Select id="type" required value={v.type} onChange={(e) => set("type", e.target.value as typeof v.type)}>
+              <Field label="Type" htmlFor="type" hint={types.length ? "Your categories from Admin → Categories" : <>No categories yet. <Link className="underline" href="/admin/categories">Add one first</Link>.</>}>
+                <Select id="type" required value={root?.id ?? ""} onChange={(e) => chooseType(e.target.value)}>
                   <option value="">Choose a product type</option>
-                  {PRODUCT_TYPES.map((t) => <option key={t} value={t}>{LABEL[t]}</option>)}
+                  {types.map((t) => <option key={t.id} value={t.id}>{t.name}{t.isActive === false ? " (hidden)" : ""}</option>)}
                 </Select>
               </Field>
-              <Field label="Category" htmlFor="category" hint={categories.length ? undefined : <>No categories yet. <Link className="underline" href="/admin/categories">Add one first</Link>.</>}>
-                <Select id="category" required value={v.category} onChange={(e) => set("category", e.target.value)}>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <Field label="Category" htmlFor="category" hint={root ? "Fields below change with the category" : "Choose a type first"}>
+                <Select id="category" required disabled={!root} value={v.category} onChange={(e) => set("category", e.target.value)}>
+                  {!root && <option value="">Choose a type first</option>}
+                  {inType.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.id === root?.id ? `All ${c.name} (no subcategory)` : c.label.split(" › ").slice(1).join(" › ")}
+                      {c.isActive === false ? " (hidden)" : ""}
+                    </option>
+                  ))}
                 </Select>
               </Field>
               <Field label="Description" htmlFor="description" className="sm:col-span-2">
@@ -277,7 +312,12 @@ export function ProductForm({
           <section className={section} aria-labelledby="sec-details">
             <h2 id="sec-details" className={h2}>Details</h2>
             <div className="space-y-4">
-              {shown("patternName") && <Field label="Pattern name" htmlFor="pattern"><TextInput id="pattern" value={v.patternName} onChange={(e) => set("patternName", e.target.value)} /></Field>}
+              {shown("patternName") && (
+                <Field label="Pattern name" htmlFor="pattern" hint="Shown as a Pattern filter on the category page, e.g. Tapered">
+                  <TextInput id="pattern" list="pattern-names" autoComplete="off" value={v.patternName} onChange={(e) => set("patternName", e.target.value)} />
+                  <datalist id="pattern-names">{patternNames.map((n) => <option key={n} value={n} />)}</datalist>
+                </Field>
+              )}
               {shown("capacity") && <Field label="Capacity" htmlFor="capacity"><TextInput id="capacity" placeholder="e.g. 350 ml" value={v.capacity} onChange={(e) => set("capacity", e.target.value)} /></Field>}
               {shown("dimensions") && <Field label="Dimensions" htmlFor="dimensions"><TextInput id="dimensions" placeholder="e.g. 9 cm × 8 cm" value={v.dimensions} onChange={(e) => set("dimensions", e.target.value)} /></Field>}
               {shown("care") && <Field label="Care" htmlFor="care"><TextArea id="care" rows={3} value={v.care} onChange={(e) => set("care", e.target.value)} /></Field>}
@@ -319,7 +359,7 @@ export function ProductForm({
                   );
                 return <Field key={f.key} label={label} htmlFor={id} hint={hint}><TextInput id={id} inputMode={f.type === "number" ? "decimal" : undefined} placeholder={f.placeholder} value={val} onChange={(e) => setAttr(f.key, e.target.value)} /></Field>;
               })}
-              {v.type === "CRAFT" && shown("kitContents") && (
+              {(kind === "CRAFT" || kitText.trim() !== "") && shown("kitContents") && (
                 <Field label="Kit contents" htmlFor="kit" hint="One item per line.">
                   <TextArea id="kit" rows={4} value={kitText} onChange={(e) => setKitText(e.target.value)} />
                 </Field>

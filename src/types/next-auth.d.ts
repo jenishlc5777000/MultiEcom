@@ -10,6 +10,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     role?: UserRole;
-    ownerSessionStartedAt?: number;
+    /** When the person signed in (ms); sessions end 24 hours later. */
+    sessionStartedAt?: number;
   }
 }

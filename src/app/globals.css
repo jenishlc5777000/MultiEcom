@@ -111,8 +111,13 @@
   .prose-shop strong { @apply font-semibold; }
 
   /* Headline lines rising out of a mask */
-  .line-mask { display: block; overflow: hidden; padding-bottom: .06em; }
-  .line-mask > span { display: block; }
+  .line-mask { display: block; overflow: hidden; padding-bottom: .08em; }
+  .line-mask > span { display: block; overflow-wrap: break-word; }
+  /* Clip only top/bottom (for the rise-in), never the sides: long words and italic
+     accents stay fully visible on narrow phones. */
+  @supports (overflow: clip) {
+    .line-mask { overflow: visible; overflow-y: clip; }
+  }
 }
 
 /* Scroll-linked parallax where supported (progressive enhancement). */

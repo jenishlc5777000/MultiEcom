@@ -9,7 +9,7 @@ import { ProductListing } from "@/components/product/product-listing";
 import type { ListingLayout } from "@/config/themes";
 import { browseParams, filterValues, withParams } from "@/lib/browse-params";
 import { cn } from "@/lib/utils";
-import { getCategories, getCategoryBySlug, getProductsByCategory } from "@/services/catalog.service";
+import { getCategories, getCategoryBySlug, getPatternOptions, getProductsByCategory } from "@/services/catalog.service";
 import { getSiteConfig } from "@/services/site-config.service";
 import { getActiveTheme } from "@/services/store.service";
 import type { CategoryDTO } from "@/types/dto";
@@ -31,16 +31,25 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   if (!category) notFound();
 
   const p = browseParams.parse(raw);
-  const selectedPattern = category.requiresChild && raw.pattern
-    ? category.children.find((child) => child.slug === raw.pattern) ?? null
-    : null;
-  const [site, theme, tree] = await Promise.all([getSiteConfig(), getActiveTheme(), getCategories()]);
+  const [site, theme, tree, patterns] = await Promise.all([
+    getSiteConfig(),
+    getActiveTheme(),
+    getCategories(),
+    // Pattern filter: products' pattern names + sub-subcategory names (Mugs → Tapered / Round…).
+    getPatternOptions(category.productCategoryIds, category.patternCategories.map((c) => c.name)),
+  ]);
   const opts = site.pages.category;
-  const { products, total, pageCount } = await getProductsByCategory(selectedPattern ? [selectedPattern.id] : category.productCategoryIds, p.page, {
+  // Older links used the sub-subcategory slug (?pattern=mugs-tapered): map it to its name.
+  const legacy = category.depth === 1 ? category.children.find((c) => c.slug === p.pattern) : undefined;
+  const pattern = legacy?.name ?? patterns.find((x) => x.toLowerCase() === p.pattern?.toLowerCase());
+  const patternCategoryIds = pattern ? category.patternCategories.filter((c) => c.name.toLowerCase() === pattern.toLowerCase()).map((c) => c.id) : [];
+  const { products, total, pageCount } = await getProductsByCategory(category.productCategoryIds, p.page, {
         availability: opts.showFilters ? p.availability : undefined,
         min: opts.showFilters ? p.min : undefined,
         max: opts.showFilters ? p.max : undefined,
         sort: p.sort && p.sort !== "relevance" ? p.sort : "new",
+        pattern,
+        patternCategoryIds,
       });
   const listing: ListingLayout = opts.listing === "theme" ? theme.layout.listing : opts.listing;
   // Links above the products: the subcategories, or the sibling patterns (Tapered / Round / Classic).
@@ -53,9 +62,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     (opts.showFilters || opts.showSort) && (
       <ProductFilters
         action={path}
-        values={filterValues(p)}
-        hidden={selectedPattern ? { pattern: selectedPattern.slug } : {}}
+        values={{ ...filterValues(p), pattern: pattern ?? "" }}
         layout={layout}
+        patterns={patterns}
         show={{ availability: opts.showFilters, price: opts.showFilters, sort: opts.showSort }}
       />
     );
@@ -68,10 +77,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
             <Link
               key={n}
-              href={(() => {
-                const href = withParams(path, p, { page: n });
-                return selectedPattern ? `${href}${href.includes("?") ? "&" : "?"}pattern=${encodeURIComponent(selectedPattern.slug)}` : href;
-              })()}
+              href={withParams(path, p, { page: n, pattern })}
               aria-current={n === p.page ? "page" : undefined}
               className={cn("flex size-touch items-center justify-center rounded-pill transition-colors", n === p.page ? "bg-ink text-canvas" : "bg-surface text-ink hover:bg-surface-strong")}
             >
@@ -97,7 +103,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
   const header = opts.showHero ? (
     <PageHero
-      eyebrow={["Shop", ...category.ancestors.map((a) => a.name), ...(category.requiresChild ? [] : [`${total} piece${total === 1 ? "" : "s"}`])].join(" · ")}
+      eyebrow={["Shop", ...category.ancestors.map((a) => a.name), `${total} piece${total === 1 ? "" : "s"}`].join(" · ")}
       title={category.name}
       lead={category.description || undefined}
       className={opts.heroAlign === "center" ? "pb-8 text-center md:pb-12 [&_h1]:mx-auto [&_p]:mx-auto" : "pb-8 md:pb-12"}
@@ -105,24 +111,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   ) : (
     <div className="container pb-4 pt-10">
       <h1 className="text-h2">{category.name}</h1>
-      {!category.requiresChild && <p className="mt-1 text-sm text-muted">{total} piece{total === 1 ? "" : "s"}</p>}
+      <p className="mt-1 text-sm text-muted">{total} piece{total === 1 ? "" : "s"}</p>
     </div>
   );
-
-  /* "Choose a pattern first": the patterns (Tapered / Round / Classic…), no product list. Design from Studio → Pages. */
-  if (category.requiresChild) {
-    return (
-      <div data-studio="category-page">
-        {header}
-        <div className="container space-y-8">
-          {breadcrumb}
-          <PatternPicker items={category.children} parentSlug={category.slug} activeSlug={selectedPattern?.slug ?? ""} />
-          {filters("bar")}
-          {results}
-        </div>
-      </div>
-    );
-  }
 
   /* Sidebar: category tree + filters on the left, products on the right */
   if (opts.layout === "sidebar") {
@@ -263,39 +254,6 @@ function CategoryTree({ tree, activeSlug }: { tree: CategoryDTO[]; activeSlug: s
             </li>
           );
         })}
-      </ul>
-    </nav>
-  );
-}
-
-/* ───────────── Pattern picker designs ───────────── */
-
-type PatternItem = { id: string; name: string; slug: string; image?: { url: string; alt: string }; description?: string };
-
-function PatternPicker({ items, parentSlug, activeSlug }: { items: PatternItem[]; parentSlug: string; activeSlug: string }) {
-  return (
-    <nav aria-label="Filter by subcategory" className="-mx-5 overflow-x-auto px-5 pb-3 sm:mx-0 sm:px-0">
-      <ul className="flex w-max min-w-full gap-2">
-        <li className="shrink-0">
-          <Link
-            href={`/category/${parentSlug}`}
-            aria-current={!activeSlug ? "page" : undefined}
-            className={cn("inline-flex min-h-11 items-center rounded-pill border px-4 text-sm font-medium transition-colors", !activeSlug ? "border-ink bg-ink text-canvas shadow-sm" : "border-line bg-paper/60 text-ink hover:border-ink hover:bg-surface")}
-          >
-            All styles
-          </Link>
-        </li>
-        {items.map((c) => (
-          <li key={c.id} className="shrink-0">
-            <Link
-              href={`/category/${parentSlug}?pattern=${encodeURIComponent(c.slug)}`}
-              aria-current={c.slug === activeSlug ? "page" : undefined}
-              className={cn("inline-flex min-h-11 items-center rounded-pill border px-4 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink", c.slug === activeSlug ? "border-ink bg-ink text-canvas shadow-sm" : "border-line bg-paper/60 text-ink hover:border-ink hover:bg-surface")}
-            >
-              {c.name}
-            </Link>
-          </li>
-        ))}
       </ul>
     </nav>
   );

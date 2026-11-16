@@ -171,7 +171,7 @@ function AddGallery({ onAdd, onClose }: { onAdd: (t: SectionType) => void; onClo
           <div key={g}>
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">{g}</p>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {(Object.keys(SECTION_INFO) as SectionType[]).filter((t) => SECTION_INFO[t].group === g).map((t) => (
+              {(Object.keys(SECTION_INFO) as SectionType[]).filter((t) => SECTION_INFO[t].group === g && t !== "readyToShip").map((t) => (
                 <button key={t} type="button" onClick={() => onAdd(t)} className="rounded-md border border-line p-3 text-left transition-colors hover:border-ink hover:bg-surface">
                   <span className="block text-sm font-medium">{SECTION_INFO[t].label}</span>
                   <span className="block text-xs text-muted">{SECTION_INFO[t].hint}</span>

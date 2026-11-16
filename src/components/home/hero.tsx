@@ -163,7 +163,7 @@ function FeaturedCard({ featured, className, label = "Featured" }: { featured?: 
         </div>
         <div className="min-w-0">
           <p className="text-eyebrow uppercase text-accent">{label}</p>
-          <p className="truncate font-medium">{featured.name}</p>
+          <p className="line-clamp-2 font-medium leading-snug">{featured.name}</p>
           <p className="text-sm text-muted">From {formatINR(featured.priceFrom)}</p>
         </div>
       </div>
@@ -202,7 +202,7 @@ function SplitHero(props: Omit<Props, "layout">) {
       {/* soft clay-tone wash behind the composition */}
       <div aria-hidden className="pointer-events-none absolute -right-40 top-10 hidden size-[640px] rounded-full bg-surface blur-3xl lg:block" />
 
-      <div className="container relative grid gap-12 pb-16 pt-8 lg:min-h-[min(calc(100svh-var(--header-h)),860px)] lg:grid-cols-12 lg:items-center lg:gap-8 lg:pb-24">
+      <div className="container relative grid gap-12 pb-20 pt-8 lg:min-h-[min(calc(100svh-var(--header-h)),860px)] lg:grid-cols-12 lg:items-center lg:gap-8 lg:pb-24">
         <div className="lg:col-span-6">
           <p className="eyebrow animate-fade-up" {...c.eyebrowEdit}>{c.eyebrow}</p>
           <Headline lines={c.lines} className="mt-6" />
@@ -228,7 +228,7 @@ function SplitHero(props: Omit<Props, "layout">) {
 function CenteredHero(props: Omit<Props, "layout">) {
   const c = useHeroContent(props);
   return (
-    <section data-studio="hero" className="hero-root relative overflow-hidden pb-6 pt-10 md:pt-16">
+    <section data-studio="hero" className="hero-root relative overflow-hidden pb-12 pt-10 md:pb-10 md:pt-16">
       <div aria-hidden className="pointer-events-none absolute left-1/2 top-0 size-[720px] -translate-x-1/2 rounded-full bg-surface blur-3xl" />
       <div className="container relative flex flex-col items-center text-center">
         <p className="eyebrow animate-fade-up rounded-pill border border-line bg-paper/60 px-4 py-1.5" {...c.eyebrowEdit}>{c.eyebrow}</p>
@@ -357,7 +357,7 @@ function CollageHero(props: Omit<Props, "layout">) {
           <HeroImage image={second} sizes="(min-width: 1024px) 25vw, 50vw" className="absolute right-0 top-[8%] h-[46%] w-[38%] animate-clip-up rounded-lg shadow-float [animation-delay:350ms]" />
           <HeroImage image={third} sizes="(min-width: 1024px) 28vw, 55vw" className="absolute bottom-0 right-[8%] h-[40%] w-[48%] animate-clip-up rounded-lg shadow-float [animation-delay:550ms]" />
           <RotatingBadge className="bottom-[34%] left-[46%] z-10" />
-          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="absolute -bottom-4 left-0 z-10 w-[min(20rem,90%)]" />
+          <FeaturedCard featured={props.featured} label={props.featuredLabel} className="absolute bottom-0 left-0 z-10 w-[min(20rem,90%)] lg:-bottom-4" />
         </div>
       </div>
     </section>
@@ -394,7 +394,7 @@ function FramedHero(props: Omit<Props, "layout">) {
           </span>
           {/* featured price callout */}
           {props.featured && (
-            <Link href={`/products/${props.featured.slug}`} className="absolute bottom-0 right-2 z-10 min-w-48 animate-fade-up border border-line bg-paper/95 px-4 py-3 text-ink shadow-float backdrop-blur [animation-delay:1100ms]">
+            <Link href={`/products/${props.featured.slug}`} className="absolute bottom-0 right-2 z-10 min-w-48 max-w-[calc(100%-1rem)] animate-fade-up border border-line bg-paper/95 px-4 py-3 text-ink shadow-float backdrop-blur [animation-delay:1100ms]">
               <span className="block text-[11px] uppercase tracking-[0.14em] text-muted">01 — {props.featured.name}</span>
               <span className="text-lg font-semibold text-accent">{formatINR(props.featured.priceFrom)}</span>
             </Link>

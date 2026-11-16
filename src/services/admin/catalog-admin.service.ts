@@ -304,6 +304,18 @@ export async function deleteCategory(id: string) {
   await Category.deleteOne({ _id: id });
 }
 
+/** Pattern names already used on products (suggestions in the product form, A→Z). */
+export async function listPatternNames() {
+  await connectDB();
+  const names = (await Product.distinct("patternName")) as unknown[];
+  const seen = new Map<string, string>();
+  for (const n of names) {
+    const v = typeof n === "string" ? n.trim() : "";
+    if (v && !seen.has(v.toLowerCase())) seen.set(v.toLowerCase(), v);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}
+
 export async function listGlazesAndSizes() {
   await connectDB();
   const [glazes, sizes] = await Promise.all([Glaze.find().sort({ name: 1 }).lean(), Size.find().sort({ sortOrder: 1, label: 1 }).lean()]);

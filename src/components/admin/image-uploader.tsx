@@ -9,60 +9,93 @@ import { cn } from "@/lib/utils";
 export type UploadedImage = { url: string; publicId: string; alt: string };
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-const TARGET_BYTES = 1.5 * 1024 * 1024;
-const MAX_EDGE = 2000;
+/** Aim for photos around 500 KB: sharp on screen, quick on phones. */
+const TARGET_BYTES = 500 * 1024;
+const MAX_EDGE = 1800;
+const MIN_EDGE = 900;
 
-/** Resize and encode uploads as WebP before sending them to storage. */
-async function compressImage(file: File): Promise<File> {
-  let bitmap: ImageBitmap;
+type Source = { draw: CanvasImageSource; width: number; height: number; close: () => void };
+
+/** Decode any image the browser can read (incl. iPhone HEIC in Safari), upright per its EXIF orientation. */
+async function decode(file: File): Promise<Source> {
   try {
-    bitmap = await createImageBitmap(file);
+    const b = await createImageBitmap(file, { imageOrientation: "from-image" });
+    return { draw: b, width: b.width, height: b.height, close: () => b.close() };
   } catch {
-    throw new Error(`Couldn't read ${file.name}. Try saving it as JPG, PNG, WebP, or AVIF and uploading again.`);
-  }
-
-  try {
-    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Image compression isn't available in this browser.");
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-
-    let quality = 0.86;
-    let blob = await canvasBlob(canvas, quality);
-    while (blob.size > TARGET_BYTES && quality > 0.5) {
-      quality = Math.max(0.5, quality - 0.12);
-      blob = await canvasBlob(canvas, quality);
+    // Fallback: some browsers decode more formats through <img> than createImageBitmap.
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new window.Image();
+      img.decoding = "async";
+      img.src = url;
+      await img.decode();
+      return { draw: img, width: img.naturalWidth, height: img.naturalHeight, close: () => URL.revokeObjectURL(url) };
+    } catch {
+      URL.revokeObjectURL(url);
+      throw new Error(`Couldn't read ${file.name}. Try saving it as JPG, PNG or WebP and uploading again.`);
     }
-
-    // If a detailed image is still large, scale it down in steps before the final encode.
-    while (blob.size > TARGET_BYTES && canvas.width > 1000) {
-      const nextWidth = Math.round(canvas.width * 0.8);
-      const nextHeight = Math.round(canvas.height * 0.8);
-      const smaller = document.createElement("canvas");
-      smaller.width = nextWidth;
-      smaller.height = nextHeight;
-      const smallerContext = smaller.getContext("2d");
-      if (!smallerContext) break;
-      smallerContext.drawImage(canvas, 0, 0, nextWidth, nextHeight);
-      canvas.width = nextWidth;
-      canvas.height = nextHeight;
-      context.drawImage(smaller, 0, 0);
-      blob = await canvasBlob(canvas, quality);
-    }
-
-    if (blob.size > MAX_UPLOAD_BYTES) throw new Error(`${file.name} is still over 5 MB after compression. Try a smaller image.`);
-    return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "image"}.webp`, { type: "image/webp", lastModified: Date.now() });
-  } finally {
-    bitmap.close();
   }
 }
 
-function canvasBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+/** WebP when the browser can make it (Chrome, Edge, Firefox), otherwise JPEG (older Safari / iPhone). */
+let outputType: "image/webp" | "image/jpeg" | null = null;
+async function pickOutputType(): Promise<"image/webp" | "image/jpeg"> {
+  if (outputType) return outputType;
+  const c = document.createElement("canvas");
+  c.width = c.height = 2;
+  const b = await new Promise<Blob | null>((r) => c.toBlob(r, "image/webp", 0.8));
+  outputType = b?.type === "image/webp" ? "image/webp" : "image/jpeg";
+  return outputType;
+}
+
+/** Resize and re-encode every upload (target ~500 KB, longest side ≤ 1800 px) before it is sent. */
+async function compressImage(file: File): Promise<File> {
+  const src = await decode(file);
+  try {
+    const type = await pickOutputType();
+    let edge = Math.min(MAX_EDGE, Math.max(src.width, src.height));
+    let quality = 0.82;
+    let blob: Blob;
+    for (;;) {
+      const scale = edge / Math.max(src.width, src.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(src.width * scale));
+      canvas.height = Math.max(1, Math.round(src.height * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Image compression isn't available in this browser.");
+      if (type === "image/jpeg") {
+        // JPEG has no transparency: put see-through areas (e.g. PNG logos) on white, not black.
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(src.draw, 0, 0, canvas.width, canvas.height);
+
+      blob = await canvasBlob(canvas, type, quality);
+      while (blob.size > TARGET_BYTES && quality > 0.6) {
+        quality = Math.max(0.6, quality - 0.08);
+        blob = await canvasBlob(canvas, type, quality);
+      }
+      // Still heavy (very detailed photo): make it a bit smaller and try again.
+      if (blob.size <= TARGET_BYTES || edge <= MIN_EDGE) break;
+      edge = Math.max(MIN_EDGE, Math.round(edge * 0.8));
+    }
+
+    // Already small and not bigger than needed: keep the original if it is lighter.
+    const keepOriginal = ["image/jpeg", "image/webp"].includes(file.type) && file.size <= blob.size && Math.max(src.width, src.height) <= MAX_EDGE;
+    if (keepOriginal) return file;
+    if (blob.size > MAX_UPLOAD_BYTES) throw new Error(`${file.name} is still over 5 MB after compression. Try a smaller image.`);
+    const ext = blob.type === "image/webp" ? "webp" : "jpg";
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "image"}.${ext}`, { type: blob.type || type, lastModified: Date.now() });
+  } finally {
+    src.close();
+  }
+}
+
+function canvasBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Image compression failed. Please try another image.")), "image/webp", quality);
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Image compression failed. Please try another image."))), type, quality);
   });
 }
 
@@ -159,8 +192,8 @@ export function ImageUploader({ value, onChange, folder, path = [], max = 12, la
           </li>
         )}
       </ul>
-      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple className="sr-only" tabIndex={-1} onChange={(e) => upload(e.target.files)} />
-      <p className="text-xs text-muted">JPG, PNG, WebP or AVIF. Images are automatically resized and compressed to WebP (usually under 1.5 MB). The first photo is the cover.</p>
+      <input ref={input} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1} onChange={(e) => upload(e.target.files)} />
+      <p className="text-xs text-muted">JPG, PNG, WebP, AVIF or iPhone photos. Each image is automatically resized and compressed (usually under 500 KB) before upload. The first photo is the cover.</p>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
   );

@@ -6,12 +6,12 @@ import { CategoryShowcase } from "@/components/home/category-showcase";
 import { ClosingCta } from "@/components/home/closing-cta";
 import { Hero } from "@/components/home/hero";
 import type { HomeData } from "@/components/home/modes/types";
+import { ProcessSection } from "@/components/home/process-section";
 import { PromiseStrip } from "@/components/home/promise-strip";
 import { SectionHeading } from "@/components/home/section-heading";
 import { StorySection } from "@/components/home/story-section";
 import { Marquee } from "@/components/motion/marquee";
 import { Reveal } from "@/components/motion/reveal";
-import { ProductCarousel } from "@/components/product/product-carousel";
 import { ProductGrid } from "@/components/product/product-card";
 import { ProductListing } from "@/components/product/product-listing";
 import { Button, ButtonArrow } from "@/components/ui/button";
@@ -33,7 +33,7 @@ const isBuiltin = (t: string) => (BUILTIN_TYPES as readonly string[]).includes(t
 
 /** The home page as built in Studio → Sections. */
 export async function BuilderHome({ data, sections }: { data: HomeData; sections: Section[] }) {
-  const visible = sections.filter((s) => s.enabled && s.type !== "process");
+  const visible = sections.filter((s) => s.enabled && s.type !== "readyToShip");
   const rendered = await Promise.all(visible.map((s) => renderSection(s, data)));
   return (
     <div>
@@ -89,8 +89,6 @@ async function renderSection(s: Section, d: HomeData): Promise<React.ReactNode> 
       return d.tickerItems.length ? <Marquee items={d.tickerItems} className="border-y border-line py-6 md:py-8" /> : null;
     case "categories":
       return <CategoryShowcase categories={d.categories} layout={layout.categories} eyebrow={t.categoriesEyebrow} title={t.categoriesTitle} />;
-    case "readyToShip":
-      return <div className="container"><ProductCarousel eyebrow={t.readyEyebrow} title={t.readyTitle.replace(/\*/g, "")} products={d.readyStock} href="/category" /></div>;
     case "newArrivals":
       return d.newest.length ? (
         <div className="container space-y-10">
@@ -100,6 +98,8 @@ async function renderSection(s: Section, d: HomeData): Promise<React.ReactNode> 
       ) : null;
     case "story":
       return <StorySection image={d.storyImage} content={d.site.content.story} />;
+    case "process":
+      return <ProcessSection content={d.site.content.process} />;
     case "promise":
       return <PromiseStrip {...d.store} />;
     case "closing":
