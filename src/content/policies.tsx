@@ -143,7 +143,7 @@ export function getPolicy(slug: PolicySlug, s: StoreFacts): Policy {
             body: (
               <>
                 <ol>
-                  <li>Contact us through our <Link href="/contact">Contact Us page</Link> within 7 days of delivery.</li>
+                  <li>Contact us through our <Link href="/contact">Contact Us page</Link> within <strong>{s.returnWindowDays} day{s.returnWindowDays === 1 ? "" : "s"} of delivery</strong>.</li>
                   <li>Share your order number, product details, and reason for the request.</li>
                   <li>For damaged, defective, or incorrect products, include clear photographs of the item and packaging. An unboxing video is helpful if available, but not mandatory.</li>
                   <li>Our team aims to respond within 2 working days with further instructions.</li>

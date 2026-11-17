@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Copy, ImageIcon, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ImageIcon, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { saveProductAction } from "@/actions/admin/catalog.actions";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ import { ImageUploader, type UploadedImage } from "./image-uploader";
 type Option = { id: string; name: string };
 /** A category from Admin → Categories (top-level ones are the product "types"). */
 type CategoryOption = Option & { label: string; parentId: string | null; isActive?: boolean };
-type Variant = ProductFormValues["variants"][number] & { key: string };
+/** `groupKey` (form only): which colour card the row belongs to. */
+type Variant = ProductFormValues["variants"][number] & { key: string; groupKey: string };
 
 const LABEL = {
   READY_STOCK: "Ready to ship",
@@ -33,7 +34,7 @@ const kindOf = (root?: { name: string }) => (root && /craft|kit|\bart\b/i.test(r
 let keySeed = 0;
 const newKey = () => `v${Date.now()}-${keySeed++}`;
 
-const blankVariant = (key = newKey()): Variant => ({ key, id: "", glaze: "", size: "", sku: "", price: 0, compareAtPrice: "", stock: 0, isActive: true, image: null, images: [] });
+const blankVariant = (key = newKey()): Variant => ({ key, groupKey: `g-${key}`, id: "", glaze: "", size: "", sku: "", price: 0, compareAtPrice: "", stock: 0, isActive: true, image: null, images: [] });
 
 const EMPTY: Omit<ProductFormValues, "id"> = {
   name: "", slug: "", type: "" as ProductFormValues["type"], status: "DRAFT", availability: "READY_STOCK", category: "", isUnique: false, leadTimeDays: "",
@@ -66,10 +67,19 @@ export function ProductForm({
     ...(initial ?? EMPTY),
     category: initial?.category ?? "",
     // Initial rows get deterministic keys so server and client render identical ids (no hydration mismatch).
-    variants: (initial?.variants.length ? initial.variants : [blankVariant("init-0")]).map((x, i) => ({ ...x, key: x.id || `init-${i}` })) as Variant[],
+    variants: (initial?.variants.length ? initial.variants : [blankVariant("init-0")]).map((x, i) => ({ ...x, key: x.id || `init-${i}`, groupKey: x.glaze ? `c-${x.glaze}` : "c-none" })) as Variant[],
   }));
   const [kitText, setKitText] = useState((initial?.kitContents ?? []).join("\n"));
   const [tagText, setTagText] = useState((initial?.tags ?? []).join(", "));
+  // Snapshot of the last saved state, so Cancel can warn about unsaved edits.
+  const snapshot = () => JSON.stringify([v, kitText, tagText]);
+  const savedState = useRef<string | null>(null);
+  if (savedState.current === null) savedState.current = snapshot();
+  const dirty = snapshot() !== savedState.current;
+  const cancel = () => {
+    if (dirty && !confirm("Leave without saving? Your changes will be lost.")) return;
+    router.push("/admin/products");
+  };
 
   // Type = top-level category; Category = that type or one of its subcategories (always the live list).
   const byId = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -105,42 +115,76 @@ export function ProductForm({
     setV((s) => ({ ...s, variants: s.variants.map((x) => (x.key === key ? { ...x, ...patch } : x)) }));
   };
 
-  // Variants are a list of collapsible rows: a summary line, opened to edit.
-  // One variant: open. Several: all closed until clicked.
-  const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set(v.variants.length === 1 ? [v.variants[0]!.key] : []));
-  const [focusKey, setFocusKey] = useState<string | null>(null);
-  const variantRefs = useRef(new Map<string, HTMLLIElement>());
-  useEffect(() => {
-    if (!focusKey) return;
-    variantRefs.current.get(focusKey)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    setFocusKey(null);
-  }, [focusKey]);
-  const toggleVariant = (key: string) =>
-    setOpenKeys((o) => {
+  // Variants are shown grouped by colour: each colour card has its photos and a
+  // list of sizes, each size with its own price, stock and SKU. (Saved as one
+  // row per colour + size, as before.)
+  type Group = { key: string; glaze: string; rows: Variant[] };
+  const groups: Group[] = [];
+  for (const x of v.variants) {
+    const g = groups.find((y) => y.key === x.groupKey);
+    if (g) g.rows.push(x);
+    else groups.push({ key: x.groupKey, glaze: x.glaze, rows: [x] });
+  }
+  // One colour: open. Several: closed until clicked. Size lists start open; each size row starts closed.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(groups.length === 1 ? [groups[0]!.key] : []));
+  const [closedSizeLists, setClosedSizeLists] = useState<Set<string>>(() => new Set());
+  const [openSizes, setOpenSizes] = useState<Set<string>>(() => new Set(v.variants.length === 1 ? [v.variants[0]!.key] : []));
+  const flip = (set: React.Dispatch<React.SetStateAction<Set<string>>>, key: string, on?: boolean) =>
+    set((o) => {
       const n = new Set(o);
-      if (n.has(key)) n.delete(key);
-      else n.add(key);
+      if (on ?? !n.has(key)) n.add(key);
+      else n.delete(key);
       return n;
     });
-  /** Add a variant (optionally copying colour, photos and prices, right below the source) and open it. */
-  const addVariant = (from?: Variant) => {
-    const row: Variant = {
-      ...blankVariant(),
-      ...(from ? { glaze: from.glaze, price: from.price, compareAtPrice: from.compareAtPrice, stock: from.stock, images: from.images, image: from.image } : {}),
-    };
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const focusRefs = useRef(new Map<string, HTMLElement>());
+  useEffect(() => {
+    if (!focusKey) return;
+    focusRefs.current.get(focusKey)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setFocusKey(null);
+  }, [focusKey]);
+  const refFor = (key: string) => (el: HTMLElement | null) => {
+    if (el) focusRefs.current.set(key, el);
+    else focusRefs.current.delete(key);
+  };
+
+  /** A new colour card (blank colour, one blank size), opened. */
+  const addColour = () => {
+    const row = blankVariant();
+    setSaved(false);
+    setV((s) => ({ ...s, variants: [...s.variants, row] }));
+    setOpenGroups(new Set([row.groupKey]));
+    setOpenSizes(new Set([row.key]));
+    setFocusKey(row.groupKey);
+  };
+  /** Another size in this colour: same colour and photos, price copied from the last size. */
+  const addSize = (g: Group) => {
+    const last = g.rows[g.rows.length - 1]!;
+    const row: Variant = { ...blankVariant(), groupKey: g.key, glaze: g.glaze, images: last.images, image: last.image, price: last.price, compareAtPrice: last.compareAtPrice };
     setSaved(false);
     setV((s) => {
-      const at = from ? s.variants.findIndex((x) => x.key === from.key) + 1 : s.variants.length;
+      const at = s.variants.findIndex((x) => x.key === last.key) + 1;
       const next = [...s.variants];
       next.splice(at, 0, row);
       return { ...s, variants: next };
     });
-    setOpenKeys(new Set([row.key]));
+    flip(setClosedSizeLists, g.key, false);
+    setOpenSizes(new Set([row.key]));
     setFocusKey(row.key);
+  };
+  /** Change something shared by the whole colour card (colour, photos). */
+  const setGroup = (g: Group, patch: Partial<Variant>) => {
+    setSaved(false);
+    setV((s) => ({ ...s, variants: s.variants.map((x) => (x.groupKey === g.key ? { ...x, ...patch } : x)) }));
   };
   const removeVariant = (key: string) => {
     setSaved(false);
     setV((s) => ({ ...s, variants: s.variants.filter((y) => y.key !== key) }));
+  };
+  const removeGroup = (g: Group) => {
+    if (!confirm(`Remove ${glazeName.get(g.glaze) ?? "this colour"} and its ${g.rows.length} size${g.rows.length === 1 ? "" : "s"}?`)) return;
+    setSaved(false);
+    setV((s) => ({ ...s, variants: s.variants.filter((y) => y.groupKey !== g.key) }));
   };
   const variantPhoto = (x: Variant) => x.images[0] ?? x.image ?? null;
 
@@ -166,7 +210,7 @@ export function ProductForm({
       type: kind as typeof v.type,
       kitContents: kitText.split("\n").map((s) => s.trim()).filter(Boolean),
       tags: tagText.split(",").map((s) => s.trim()).filter(Boolean),
-      variants: v.variants.map(({ key: _key, ...rest }) => ({ ...rest, id: rest.id || undefined, sku: rest.sku || suggestSku({ ...rest, key: _key }) })),
+      variants: v.variants.map(({ key: _key, groupKey: _g, ...rest }) => ({ ...rest, id: rest.id || undefined, sku: rest.sku || suggestSku({ ...rest, key: _key, groupKey: _g }) })),
     };
     start(async () => {
       const res = await saveProductAction(initial?.id ?? null, payload);
@@ -176,6 +220,7 @@ export function ProductForm({
         return;
       }
       setSaved(true);
+      savedState.current = snapshot();
       if (!initial) router.push(`/admin/products/${res.data.id}?created=1`);
       else router.refresh();
     });
@@ -249,39 +294,41 @@ export function ProductForm({
 
           <section className={section} aria-labelledby="sec-variants">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <h2 id="sec-variants" className="font-sans text-[15px] font-semibold">Variants, prices &amp; stock <span className="font-normal text-muted">({v.variants.length})</span></h2>
-              <Button type="button" size="sm" variant="secondary" onClick={() => addVariant()} disabled={v.isUnique && v.variants.length >= 1}>
+              <h2 id="sec-variants" className="font-sans text-[15px] font-semibold">
+                Variants, prices &amp; stock{" "}
+                <span className="font-normal text-muted">({groups.length} colour{groups.length === 1 ? "" : "s"} · {v.variants.length} size{v.variants.length === 1 ? "" : "s"})</span>
+              </h2>
+              <Button type="button" size="sm" variant="secondary" onClick={addColour} disabled={v.isUnique && v.variants.length >= 1}>
                 <Plus /> Add variant
               </Button>
             </div>
             <p className="mb-4 text-sm text-muted">
-              One variant per colour and size, each with its own price, stock and photos. Click a variant to open it. Use <b>Add another size</b> inside a variant to copy its colour and photos with a new size and price.
+              One variant per colour, with its photos. Inside it, add each size with its own price and stock.
               {glazes.length === 0 && <> <Link href="/admin/categories#glazes" className="underline">Add colours</Link> to offer colour options.</>}
             </p>
-            <ul className="space-y-2">
-              {v.variants.map((x, i) => {
-                const open = openKeys.has(x.key);
-                const photo = variantPhoto(x);
-                const hex = glazes.find((g) => g.id === x.glaze)?.hex;
-                const title = [glazeName.get(x.glaze), sizeName.get(x.size)].filter(Boolean).join(" · ") || "No colour or size";
+
+            <ul className="space-y-3">
+              {groups.map((g, gi) => {
+                const open = openGroups.has(g.key);
+                const first = g.rows[0]!;
+                const photo = variantPhoto(first);
+                const hex = glazes.find((c) => c.id === g.glaze)?.hex;
+                const prices = g.rows.map((r) => r.price).filter((p) => p > 0);
+                const listOpen = !closedSizeLists.has(g.key);
                 return (
                   <li
-                    key={x.key}
-                    ref={(el) => {
-                      if (el) variantRefs.current.set(x.key, el);
-                      else variantRefs.current.delete(x.key);
-                    }}
-                    className={cn("overflow-hidden rounded-md border bg-canvas/60 transition-colors", open ? "border-ink/30" : "border-line", !x.isActive && "opacity-70")}
+                    key={g.key}
+                    ref={refFor(g.key)}
+                    className={cn("overflow-hidden rounded-lg border bg-canvas/60 transition-colors", open ? "border-ink/30" : "border-line")}
                   >
-                    {/* Summary row: click to open / close */}
+                    {/* Colour card header: click to open / close */}
                     <button
                       type="button"
-                      onClick={() => toggleVariant(x.key)}
+                      onClick={() => flip(setOpenGroups, g.key)}
                       aria-expanded={open}
-                      aria-controls={`variant-${x.key}`}
-                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-surface/60 sm:px-4"
+                      className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-surface/60 sm:px-4"
                     >
-                      <span className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-surface">
+                      <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-surface">
                         {photo ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={photo.url} alt="" className="size-full object-cover" />
@@ -292,74 +339,49 @@ export function ProductForm({
                         )}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">
-                          <span className="text-muted">Variant {i + 1} · </span>
-                          {title}
+                        <span className="block truncate text-sm font-semibold">
+                          <span className="font-normal text-muted">Variant {gi + 1} · </span>
+                          {glazeName.get(g.glaze) ?? (shown("glaze") ? "Choose a colour" : "Standard")}
                         </span>
                         <span className="block truncate text-xs text-muted">
-                          {x.price ? `₹${x.price}` : "No price yet"}
-                          {x.compareAtPrice ? <> · <s>₹{x.compareAtPrice}</s></> : null}
-                          {" · "}
-                          {v.availability === "MADE_TO_ORDER" ? "made to order" : `${x.stock} in stock`}
-                          {x.images.length > 0 && ` · ${x.images.length} photo${x.images.length > 1 ? "s" : ""}`}
-                          {!x.isActive && " · hidden"}
+                          {g.rows.length} size{g.rows.length === 1 ? "" : "s"}
+                          {prices.length > 0 && ` · from ₹${Math.min(...prices)}`}
+                          {first.images.length > 0 && ` · ${first.images.length} photo${first.images.length > 1 ? "s" : ""}`}
                         </span>
                       </span>
                       <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform", open && "rotate-180")} aria-hidden />
                     </button>
 
                     {open && (
-                      <div id={`variant-${x.key}`} className="space-y-4 border-t border-line px-3 pb-4 pt-4 sm:px-4">
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                          {shown("glaze") && (
-                            <Field label="Colour" htmlFor={`g-${x.key}`}>
-                              <Select id={`g-${x.key}`} value={x.glaze} onChange={(e) => setVariant(x.key, { glaze: e.target.value })}>
-                                <option value="">No colour option</option>
-                                {glazeChoices(x).map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                              </Select>
-                            </Field>
-                          )}
-                          {shown("size") && (
-                            <Field label="Size" htmlFor={`s-${x.key}`}>
-                              <Select id={`s-${x.key}`} value={x.size} onChange={(e) => setVariant(x.key, { size: e.target.value })}>
-                                <option value="">No size option</option>
-                                {sizeChoices(x).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                              </Select>
-                            </Field>
-                          )}
-                          <Field label="SKU" htmlFor={`sku-${x.key}`} hint={x.sku ? undefined : `Auto: ${suggestSku(x) || "set a slug"}`}>
-                            <TextInput id={`sku-${x.key}`} value={x.sku} onChange={(e) => setVariant(x.key, { sku: e.target.value.toUpperCase() })} />
+                      <div className="space-y-5 border-t border-line px-3 pb-4 pt-4 sm:px-4">
+                        {shown("glaze") && (
+                          <Field label="Colour" htmlFor={`gc-${g.key}`} className="max-w-sm">
+                            <Select id={`gc-${g.key}`} value={g.glaze} onChange={(e) => setGroup(g, { glaze: e.target.value })}>
+                              <option value="">No colour option</option>
+                              {glazeChoices(first).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </Select>
                           </Field>
-                          <Field label="Price (₹)" htmlFor={`p-${x.key}`} hint="Price for this colour and size">
-                            <TextInput id={`p-${x.key}`} type="number" inputMode="decimal" min={0} step="0.01" required value={x.price || ""} onChange={(e) => setVariant(x.key, { price: Number(e.target.value) })} />
-                          </Field>
-                          <Field label="Compare-at price (₹)" htmlFor={`c-${x.key}`} hint="Optional. Shows as a sale.">
-                            <TextInput id={`c-${x.key}`} type="number" inputMode="decimal" min={0} step="0.01" value={x.compareAtPrice} onChange={(e) => setVariant(x.key, { compareAtPrice: e.target.value === "" ? "" : Number(e.target.value) })} />
-                          </Field>
-                          <Field label="Stock" htmlFor={`st-${x.key}`} hint={v.availability === "MADE_TO_ORDER" ? "Not limited for made-to-order" : undefined}>
-                            <TextInput id={`st-${x.key}`} type="number" inputMode="numeric" min={0} step={1} value={x.stock} onChange={(e) => setVariant(x.key, { stock: Math.max(0, Math.floor(Number(e.target.value))) })} />
-                          </Field>
-                        </div>
+                        )}
 
                         <div className="rounded-md border border-dashed border-line p-3">
-                          <p className="mb-1 text-sm font-medium">Photos for this variant</p>
-                          <p className="mb-3 text-xs text-muted">Shown when a customer picks this colour and size. 1st = main, 2nd = side, 3rd = bottom. None = the product photos.</p>
+                          <p className="mb-1 text-sm font-medium">Photos for this colour</p>
+                          <p className="mb-3 text-xs text-muted">Shown when a customer picks this colour. 1st = main, 2nd = side, 3rd = bottom. None = the product photos.</p>
                           <ImageUploader
                             folder="products"
-                            path={[v.slug || slugify(v.name) || "new-product", glazeName.get(x.glaze) ?? "variant"]}
+                            path={[v.slug || slugify(v.name) || "new-product", glazeName.get(g.glaze) ?? "variant"]}
                             max={3}
-                            label={`Variant ${i + 1} photo`}
-                            value={x.images as UploadedImage[]}
-                            onChange={(imgs) => setVariant(x.key, { images: imgs, image: imgs[0] ?? null })}
+                            label={`Variant ${gi + 1} photo`}
+                            value={first.images as UploadedImage[]}
+                            onChange={(imgs) => setGroup(g, { images: imgs, image: imgs[0] ?? null })}
                           />
-                          {v.images.length > 0 && x.images.length < 3 && (
+                          {v.images.length > 0 && first.images.length < 3 && (
                             <div className="mt-3 max-w-sm">
                               <Select
                                 aria-label="Use one of the product photos"
                                 value=""
                                 onChange={(e) => {
                                   const im = v.images.find((p) => p.url === e.target.value);
-                                  if (im && !x.images.some((p) => p.url === im.url)) setVariant(x.key, { images: [...x.images, im], image: x.images[0] ?? im });
+                                  if (im && !first.images.some((p) => p.url === im.url)) setGroup(g, { images: [...first.images, im], image: first.images[0] ?? im });
                                 }}
                               >
                                 <option value="">…or use a product photo</option>
@@ -369,18 +391,111 @@ export function ProductForm({
                           )}
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <Toggle label="Available" checked={x.isActive} onChange={(on) => setVariant(x.key, { isActive: on })} />
-                          <div className="flex flex-wrap gap-2">
-                            {!v.isUnique && (
-                              <Button type="button" size="sm" variant="secondary" onClick={() => addVariant(x)}>
-                                <Copy /> Add another size
+                        {!v.isUnique && shown("size") && (
+                          <Button type="button" className="w-full" onClick={() => addSize(g)}>
+                            <Plus /> Add size
+                          </Button>
+                        )}
+
+                        {/* Sizes in this colour */}
+                        <div className="rounded-md border border-line">
+                          <button
+                            type="button"
+                            onClick={() => flip(setClosedSizeLists, g.key)}
+                            aria-expanded={listOpen}
+                            className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left sm:px-4"
+                          >
+                            <span>
+                              <span className="block text-sm font-semibold">{shown("size") ? "Added sizes" : "Price & stock"} ({g.rows.length})</span>
+                              <span className="block text-xs text-muted">Click to {listOpen ? "collapse" : "expand"} the list</span>
+                            </span>
+                            <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform", listOpen && "rotate-180")} aria-hidden />
+                          </button>
+                          {listOpen && (
+                            <ul className="space-y-2 border-t border-line p-2 sm:p-3">
+                              {g.rows.map((x) => {
+                                const rowOpen = openSizes.has(x.key);
+                                return (
+                                  <li key={x.key} ref={refFor(x.key)} className={cn("overflow-hidden rounded-md border bg-paper/60", rowOpen ? "border-ink/25" : "border-line", !x.isActive && "opacity-70")}>
+                                    <button
+                                      type="button"
+                                      onClick={() => flip(setOpenSizes, x.key)}
+                                      aria-expanded={rowOpen}
+                                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-surface/60"
+                                    >
+                                      <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-sm font-medium">{sizeName.get(x.size) ?? (shown("size") ? "Choose a size" : "Standard")}</span>
+                                        <span className="block truncate text-xs text-muted">
+                                          {x.price ? `₹${x.price}` : "No price yet"}
+                                          {x.compareAtPrice ? <> · <s>₹{x.compareAtPrice}</s></> : null}
+                                          {" · "}
+                                          {v.availability === "MADE_TO_ORDER" ? "made to order" : `Stock ${x.stock}`}
+                                          {!x.isActive && " · hidden"}
+                                        </span>
+                                      </span>
+                                      <ChevronDown className={cn("size-4 shrink-0 text-muted transition-transform", rowOpen && "rotate-180")} aria-hidden />
+                                    </button>
+                                    {rowOpen && (
+                                      <div className="space-y-3 border-t border-line px-3 pb-3 pt-3">
+                                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                          {shown("size") && (
+                                            <Field label="Size" htmlFor={`s-${x.key}`}>
+                                              <Select id={`s-${x.key}`} value={x.size} onChange={(e) => setVariant(x.key, { size: e.target.value })}>
+                                                <option value="">No size option</option>
+                                                {sizeChoices(x).map((s) => (
+                                                  <option key={s.id} value={s.id} disabled={g.rows.some((r) => r.key !== x.key && r.size === s.id)}>{s.name}</option>
+                                                ))}
+                                              </Select>
+                                            </Field>
+                                          )}
+                                          <Field label="Price (₹)" htmlFor={`p-${x.key}`}>
+                                            <TextInput id={`p-${x.key}`} type="number" inputMode="decimal" min={0} step="0.01" required value={x.price || ""} onChange={(e) => setVariant(x.key, { price: Number(e.target.value) })} />
+                                          </Field>
+                                          <Field label="Compare-at price (₹)" htmlFor={`c-${x.key}`} hint="Optional. Shows as a sale.">
+                                            <TextInput id={`c-${x.key}`} type="number" inputMode="decimal" min={0} step="0.01" value={x.compareAtPrice} onChange={(e) => setVariant(x.key, { compareAtPrice: e.target.value === "" ? "" : Number(e.target.value) })} />
+                                          </Field>
+                                          <Field label="Stock" htmlFor={`st-${x.key}`} hint={v.availability === "MADE_TO_ORDER" ? "Not limited for made-to-order" : undefined}>
+                                            <TextInput id={`st-${x.key}`} type="number" inputMode="numeric" min={0} step={1} value={x.stock} onChange={(e) => setVariant(x.key, { stock: Math.max(0, Math.floor(Number(e.target.value))) })} />
+                                          </Field>
+                                          <Field label="SKU" htmlFor={`sku-${x.key}`} hint={x.sku ? undefined : `Auto: ${suggestSku(x) || "set a slug"}`}>
+                                            <TextInput id={`sku-${x.key}`} value={x.sku} onChange={(e) => setVariant(x.key, { sku: e.target.value.toUpperCase() })} />
+                                          </Field>
+                                        </div>
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                          <Toggle label="Available" checked={x.isActive} onChange={(on) => setVariant(x.key, { isActive: on })} />
+                                          <Button type="button" size="sm" variant="quiet" disabled={v.variants.length === 1} onClick={() => removeVariant(x.key)} className="text-danger">
+                                            <Trash2 /> Remove size
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Button
+                            type="button"
+                            className="w-full"
+                            onClick={() => {
+                              setOpenSizes(new Set());
+                              flip(setOpenGroups, g.key, false);
+                              setFocusKey(g.key);
+                            }}
+                          >
+                            <Save /> Save variant
+                          </Button>
+                          <p className="text-center text-xs text-muted">Changes aren&apos;t live until you save the product.</p>
+                          {groups.length > 1 && (
+                            <div className="text-center">
+                              <Button type="button" size="sm" variant="quiet" onClick={() => removeGroup(g)} className="text-danger">
+                                <Trash2 /> Remove this variant
                               </Button>
-                            )}
-                            <Button type="button" size="sm" variant="quiet" disabled={v.variants.length === 1} onClick={() => removeVariant(x.key)} className="text-danger">
-                              <Trash2 /> Remove
-                            </Button>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -497,12 +612,13 @@ export function ProductForm({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 backdrop-blur lg:left-[248px]">
         <div className="mx-auto flex max-w-[1200px] items-center 2xl:max-w-[1600px] 3xl:max-w-[2000px] justify-between gap-3 px-4 py-3 md:px-8 lg:px-12">
           <p className="text-sm text-muted" role="status">
-            {pending ? "Saving…" : saved ? "All changes saved." : initial ? "Edits aren't live until you save." : "New product"}
+            {pending ? "Saving…" : saved && !dirty ? "All changes saved." : dirty ? "Unsaved changes" : initial ? "No changes yet" : "New product"}
           </p>
           <div className="flex gap-2">
             {initial && v.status === "ACTIVE" && (
               <Button asChild variant="secondary" size="sm"><Link href={`/products/${initial.slug}`} target="_blank">View in store</Link></Button>
             )}
+            <Button type="button" variant="quiet" size="sm" onClick={cancel} disabled={pending} className="md:min-h-12 md:px-5">Cancel</Button>
             <Button type="submit" disabled={pending}>{initial ? "Save changes" : "Create product"}</Button>
           </div>
         </div>
