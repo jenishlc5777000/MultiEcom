@@ -25,7 +25,7 @@ export default async function AboutPage() {
         />
         <div className="container">
           <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-surface-strong md:aspect-[21/9]">
-            <Image src="/about-hero.png" alt="Colorful ceramics and creative craft pieces arranged in a sunny studio" fill priority sizes="100vw" className="object-cover" />
+            <Image src="/about-hero.jpg" alt="Handmade ceramic mugs, bowls and vases beside paint-your-own figurines and colourful paints in a sunny studio" fill priority sizes="100vw" className="object-cover object-[center_60%]" />
           </div>
         </div>
       </div>

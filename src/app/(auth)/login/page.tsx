@@ -31,7 +31,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <div className="space-y-6">
       <div className="space-y-1">
         <h1 className="text-2xl">Sign in</h1>
-        <p className="text-sm text-ink/80">We&apos;ll email you a 6-digit code. No password needed.</p>
+        <p className="text-sm text-ink/80">
+          {emailEnabled && googleEnabled
+            ? "Continue with Google, or get a 6-digit code by email. No password needed."
+            : googleEnabled
+              ? "Sign in with your Google account."
+              : "We'll email you a 6-digit code. No password needed."}
+        </p>
       </div>
       {error && (
         <p role="alert" className="rounded-lg bg-danger/10 p-3 text-sm text-danger">
