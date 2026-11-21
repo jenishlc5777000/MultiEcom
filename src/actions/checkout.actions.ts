@@ -30,7 +30,9 @@ export async function placeOrderAction(input: unknown): Promise<ActionResult<Che
     if (e instanceof OutOfStockError || e instanceof UnavailableError || e instanceof CheckoutError) {
       return { ok: false, error: e.message };
     }
-    console.error("[checkout] place order", e);
+    const status = (e as { statusCode?: number } | null)?.statusCode;
+    if (status === 401) console.error("[checkout] Razorpay rejected the API keys (401). Check RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET or Admin → Integrations.");
+    else console.error("[checkout] place order", e);
     return { ok: false, error: "We couldn't start your payment. Nothing was charged; please try again." };
   }
 }

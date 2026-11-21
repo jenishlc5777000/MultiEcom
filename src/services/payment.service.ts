@@ -4,7 +4,7 @@ import { getPaymentProvider, type ClientCheckoutConfig, type PaymentEvent } from
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { Order, Payment } from "@/models";
 import { clearCartForUser } from "./cart.service";
-import { cancelUnpaidOrder } from "./order.service";
+import { cancelUnpaidOrder, CheckoutError } from "./order.service";
 import { canAutoApprove } from "@/lib/order-flow";
 import { getOrderFlow } from "./order-flow.service";
 
@@ -15,6 +15,8 @@ export async function startPayment(order: OrderForPayment): Promise<ClientChecko
   await connectDB();
   const provider = await getPaymentProvider();
   try {
+    // Razorpay's minimum order is ₹1 (100 paise).
+    if (order.total < 100) throw new CheckoutError("The order total must be at least ₹1 to pay online.");
     const gatewayOrder = await provider.createOrder({
       amount: order.total,
       currency: "INR",

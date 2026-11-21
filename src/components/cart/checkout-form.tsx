@@ -13,7 +13,8 @@ import type { AddressInput } from "@/lib/validations";
 import { formatINR } from "@/lib/utils";
 
 type RazorpaySuccess = { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string };
-type RazorpayInstance = { open(): void; on(event: string, cb: () => void): void };
+type RazorpayFailure = { error?: { description?: string; reason?: string } };
+type RazorpayInstance = { open(): void; on(event: string, cb: (res: RazorpayFailure) => void): void };
 declare global {
   interface Window {
     Razorpay?: new (options: Record<string, unknown>) => RazorpayInstance;
@@ -72,6 +73,10 @@ export function CheckoutForm({
         router.push(`/checkout/success?order=${orderId}${verify.ok ? "" : "&pending=1"}`);
       },
       modal: { ondismiss: () => setError("Payment was cancelled. Your items are held for a few minutes.") },
+    });
+    rzp.on("payment.failed", (res) => {
+      const why = res.error?.description;
+      setError(`Payment failed${why ? `: ${why}` : ""}. Nothing was charged. You can try again.`);
     });
     rzp.open();
   }
