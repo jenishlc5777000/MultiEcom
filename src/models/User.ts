@@ -15,6 +15,8 @@ const userSchema = new Schema(
     emailVerified: Date,
     image: String,
     phone: String,
+    /** Email + password customers only (scrypt). Never selected unless asked for. */
+    passwordHash: { type: String, select: false },
     role: { type: String, enum: USER_ROLES, default: "customer" },
     addresses: [addressSchema],
     /** Blocked users cannot sign in or check out. */

@@ -35,17 +35,6 @@ export async function sendPlainEmail(to: string, subject: string, body: string, 
   await send(to, subject, html, body, replyTo);
 }
 
-export async function sendOtpEmail(to: string, code: string) {
-  const html = `
-    <div style="font-family:Georgia,serif;background:#FAF6EF;padding:32px;color:#1F2430">
-      <h1 style="color:#0F2A5C;font-size:22px;margin:0 0 16px">${siteConfig.name}</h1>
-      <p style="font-family:Arial,sans-serif">Your sign-in code is</p>
-      <p style="font-size:32px;letter-spacing:8px;font-weight:bold;color:#0F2A5C">${code}</p>
-      <p style="font-family:Arial,sans-serif;color:#6B6F7A">It expires in 10 minutes. If you didn't ask for it, ignore this email.</p>
-    </div>`;
-  await send(to, `${code} is your ${siteConfig.name} sign-in code`, html, `Your sign-in code is ${code}. It expires in 10 minutes.`);
-}
-
 const STATUS_COPY: Partial<Record<OrderStatus, { subject: string; body: string }>> = {
   CONFIRMED: { subject: "is confirmed", body: "We've approved your order and it's being prepared." },
   IN_PRODUCTION: { subject: "is being made", body: "Your piece is now being made in the studio." },

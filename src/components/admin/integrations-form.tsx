@@ -139,8 +139,8 @@ export function IntegrationsForm({ initial }: { initial: IntegrationsAdminView }
           <legend className="mb-2 text-sm font-medium">How customers sign in</legend>
           <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Login method">
             {([
-              ["both", "Email code + Google", "Customers choose either"],
-              ["email", "Email code only", "6-digit code sent by email"],
+              ["both", "Email + password and Google", "Customers choose either"],
+              ["email", "Email + password only", "Customers create an account"],
               ["google", "Google only", "Needs the Google keys below"],
             ] as const).map(([value, label, hint]) => (
               <button
@@ -158,9 +158,9 @@ export function IntegrationsForm({ initial }: { initial: IntegrationsAdminView }
           </div>
         </fieldset>
         {loginMethods === "google" && !initial.google.clientSecret.saved && (
-          <p className="text-sm text-mto">Until Google is connected, the email code stays on so customers aren&apos;t locked out.</p>
+          <p className="text-sm text-mto">Until Google is connected, email + password stays on so customers aren&apos;t locked out.</p>
         )}
-        <p className="text-xs text-muted">The store owner can always sign in with the owner code or password, whatever you choose here.</p>
+        <p className="text-xs text-muted">The store owner always signs in on the admin login with email and password, whatever you choose here.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Google client ID" htmlFor="gid" hint={initial.google.clientIdFromEnv && !google.clientId ? "Currently using the client ID from .env" : "Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web application)"}>
             <TextInput id="gid" value={google.clientId} placeholder="1234-abc.apps.googleusercontent.com" onChange={(e) => setGoogle((s) => ({ ...s, clientId: e.target.value.trim() }))} />

@@ -33,9 +33,13 @@ export const verifyPaymentSchema = z.object({
   signature: z.string().min(1),
 });
 
-export const otpRequestSchema = z.object({ email: z.string().trim().toLowerCase().email() });
-export const otpVerifySchema = otpRequestSchema.extend({
-  code: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
+export const customerSignInSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  password: z.string().min(1, "Enter your password.").max(128),
+});
+export const customerRegisterSchema = customerSignInSchema.extend({
+  name: z.string().trim().min(2, "Enter your name.").max(80),
+  password: z.string().min(8, "Use at least 8 characters for your password.").max(128, "That password is too long."),
 });
 
 export const reviewSchema = z.object({

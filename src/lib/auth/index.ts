@@ -13,7 +13,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => ({
   adapter: MongoDBAdapter(getMongoClient),
   providers: await buildProviders(),
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE },
-  pages: { signIn: "/login", verifyRequest: "/login/verify", error: "/login" },
+  pages: { signIn: "/login", error: "/login" },
   events: {
     async signIn({ user }) {
       if (!user.id) return;
@@ -23,12 +23,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => ({
     },
   },
   callbacks: {
-    /** Blocked accounts can't start a session (any provider). */
-    async signIn({ user }) {
+    /** Blocked accounts can't start a session (any provider). Google sign-in is for customers only. */
+    async signIn({ user, account }) {
       if (!user.email) return true;
       await connectDB();
-      const existing = await User.findOne({ email: user.email.toLowerCase() }).select("isBlocked").lean();
-      return existing?.isBlocked ? "/login?error=AccessDenied" : true;
+      const existing = await User.findOne({ email: user.email.toLowerCase() }).select("isBlocked role emailVerified").lean();
+      if (existing?.isBlocked) return "/login?error=AccessDenied";
+      if (account?.provider === "google") {
+        if (existing?.role === "owner") return "/login?error=OwnerGoogle&callbackUrl=%2Fadmin";
+        // Google proves who owns the email. A password set on an unverified sign-up
+        // (possibly by someone else) is removed so it can't reach this account.
+        if (existing && !existing.emailVerified) {
+          await User.updateOne({ _id: existing._id }, { $unset: { passwordHash: 1 }, $set: { emailVerified: new Date() } });
+        }
+      }
+      return true;
     },
     async jwt({ token, user, trigger }) {
       if (user) {

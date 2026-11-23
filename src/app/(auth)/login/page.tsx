@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { googleSignInAction } from "@/actions/auth.actions";
-import { DemoLoginForm, OtpRequestForm, OwnerLoginForm } from "@/components/auth/otp-forms";
-import { demoLoginEnabled, ownerPasswordEnabled } from "@/config/env";
+import { CustomerAuthForm, DemoLoginForm, OwnerLoginForm } from "@/components/auth/auth-forms";
+import { demoLoginEnabled } from "@/config/env";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/guards";
 import { safeCallbackUrl } from "@/lib/safe-redirect";
@@ -10,10 +10,10 @@ import { getIntegrations } from "@/services/integrations.service";
 export const metadata = { title: "Sign in" };
 
 const errors: Record<string, string> = {
-  Verification: "That code is wrong or has expired. Request a new one.",
   CredentialsSignin: "Wrong email or password.",
   AccessDenied: "This account can't sign in. Please contact the store.",
   OAuthAccountNotLinked: "This email is already linked to another sign-in method.",
+  OwnerGoogle: "Admin accounts can't use Google sign-in. Sign in with your admin email and password.",
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string; error?: string }> }) {
@@ -21,46 +21,61 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const callbackUrl = safeCallbackUrl(raw);
   if (await getCurrentUser()) redirect(callbackUrl);
 
-  // Login methods from Admin → Integrations → Customer login.
+  const errorBox = error && (
+    <p role="alert" className="rounded-lg bg-danger/10 p-3 text-sm text-danger">
+      {errors[error] ?? "Sign-in failed. Please try again."}
+    </p>
+  );
+
+  // Admin sign-in (reached from /admin): owner email + password only, no Google.
+  const adminLogin = callbackUrl === "/admin" || callbackUrl.startsWith("/admin/");
+  if (adminLogin) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl">Admin sign in</h1>
+          <p className="text-sm text-ink/80">Sign in with your admin email and password.</p>
+        </div>
+        {errorBox}
+        <OwnerLoginForm callbackUrl={callbackUrl} />
+        {demoLoginEnabled() && <DemoLoginForm callbackUrl={callbackUrl} />}
+      </div>
+    );
+  }
+
+  // Customers: Google and/or email + password, from Admin → Integrations → Customer login.
   const { google, login } = await getIntegrations();
   const googleEnabled = Boolean(google.clientId && google.clientSecret) && login.methods !== "email";
-  // Email codes stay available if Google isn't set up yet, so nobody is locked out.
-  const emailEnabled = login.methods !== "google" || !googleEnabled;
+  // Email + password stays available if Google isn't set up yet, so nobody is locked out.
+  const passwordEnabled = login.methods !== "google" || !googleEnabled;
 
   return (
     <div className="space-y-6">
       <div className="space-y-1">
         <h1 className="text-2xl">Sign in</h1>
         <p className="text-sm text-ink/80">
-          {emailEnabled && googleEnabled
-            ? "Continue with Google, or get a 6-digit code by email. No password needed."
+          {passwordEnabled && googleEnabled
+            ? "Continue with Google, or use your email and password."
             : googleEnabled
               ? "Sign in with your Google account."
-              : "We'll email you a 6-digit code. No password needed."}
+              : "Sign in with your email and password, or create an account."}
         </p>
       </div>
-      {error && (
-        <p role="alert" className="rounded-lg bg-danger/10 p-3 text-sm text-danger">
-          {errors[error] ?? "Sign-in failed. Please try again."}
-        </p>
-      )}
-      {emailEnabled && <OtpRequestForm callbackUrl={callbackUrl} />}
+      {errorBox}
       {googleEnabled && (
-        <>
-          {emailEnabled && (
-            <div className="flex items-center gap-3 text-sm text-ink/70" aria-hidden>
-              <span className="h-px flex-1 bg-surface-strong" /> or <span className="h-px flex-1 bg-surface-strong" />
-            </div>
-          )}
-          <form action={googleSignInAction}>
-            <input type="hidden" name="callbackUrl" value={callbackUrl} />
-            <Button type="submit" variant="outline" size="lg" className="w-full bg-canvas">
-              Continue with Google
-            </Button>
-          </form>
-        </>
+        <form action={googleSignInAction}>
+          <input type="hidden" name="callbackUrl" value={callbackUrl} />
+          <Button type="submit" variant="outline" size="lg" className="w-full bg-canvas">
+            Continue with Google
+          </Button>
+        </form>
       )}
-      {ownerPasswordEnabled() && <OwnerLoginForm callbackUrl={callbackUrl} />}
+      {passwordEnabled && googleEnabled && (
+        <div className="flex items-center gap-3 text-sm text-ink/70" aria-hidden>
+          <span className="h-px flex-1 bg-surface-strong" /> or <span className="h-px flex-1 bg-surface-strong" />
+        </div>
+      )}
+      {passwordEnabled && <CustomerAuthForm callbackUrl={callbackUrl} />}
       {demoLoginEnabled() && <DemoLoginForm callbackUrl={callbackUrl} />}
     </div>
   );

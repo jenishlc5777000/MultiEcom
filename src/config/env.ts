@@ -24,8 +24,6 @@ const schema = z.object({
   /** Optional password sign-in for one owner account (works in production). */
   OWNER_EMAIL: optional,
   OWNER_PASSWORD: optional,
-  /** Optional fixed 6-digit sign-in code for OWNER_EMAIL (used instead of an emailed code). */
-  OWNER_LOGIN_CODE: optional,
 });
 
 /**
@@ -79,17 +77,6 @@ export function requireEnv(key: OptionalKey): string {
 export function ownerPasswordEnabled() {
   const e = env();
   return Boolean(e.OWNER_EMAIL && e.OWNER_PASSWORD && e.OWNER_PASSWORD.length >= 12);
-}
-
-/** Fixed owner code: OWNER_EMAIL plus a 6-digit OWNER_LOGIN_CODE. */
-export function ownerCodeEnabled() {
-  const e = env();
-  return Boolean(e.OWNER_EMAIL && e.OWNER_LOGIN_CODE && /^\d{6}$/.test(e.OWNER_LOGIN_CODE));
-}
-
-/** The owner email that uses the fixed code (lowercased), or undefined. */
-export function ownerCodeEmail() {
-  return ownerCodeEnabled() ? env().OWNER_EMAIL!.trim().toLowerCase() : undefined;
 }
 
 /** Demo accounts are never available in production, whatever the env says. */
