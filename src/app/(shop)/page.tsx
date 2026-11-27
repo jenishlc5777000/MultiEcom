@@ -42,7 +42,7 @@ export default async function HomePage({ searchParams }: Props) {
     theme,
     site,
     banner,
-    heroImage: pictures[0] ?? banner?.image ?? newest[0]?.image ?? categories[0]?.image,
+    heroImage: hero.imageSource === "upload" ? pictures[0] : (pictures[0] ?? banner?.image ?? newest[0]?.image ?? categories[0]?.image),
     heroSlides: hero.rotate && pictures.length > 1 ? pictures : undefined,
     storyImage: site.content.story.image ?? undefined,
     gallery: [...pictures, ...[...newest, ...readyStock].flatMap((p) => (p.image ? [p.image] : []))].slice(0, 6),

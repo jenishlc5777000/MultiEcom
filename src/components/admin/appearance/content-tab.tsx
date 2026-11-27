@@ -34,14 +34,17 @@ export function ContentTab({ initial, products = [] }: { initial: SiteConfig["co
             onChange={(imageSource) => hero({ imageSource })}
             options={[
               { value: "auto", label: "Automatic", hint: "My pictures if uploaded, else the newest product photo" },
-              { value: "upload", label: "My own pictures", hint: "Only the pictures uploaded below" },
+              { value: "upload", label: "My own pictures", hint: "Only the pictures below. Remove them all for no picture" },
               { value: "products", label: "Product pictures", hint: "Taken from your products, always up to date" },
             ]}
           />
           {c.hero.imageSource !== "products" ? (
             <>
               <ImageUploader folder="banners" path={["hero"]} max={6} label="Hero pictures" value={c.hero.images} onChange={(images) => hero({ images })} />
-              <p className="text-xs text-muted">Upload, reorder (first = main picture) or remove. Wide pictures (about 1600 × 1200 px) look best.</p>
+              <p className="text-xs text-muted">
+                Upload, reorder (first = main picture) or remove with ×. Changes show on the site after you publish.
+                {c.hero.imageSource === "auto" && c.hero.images.length === 0 && " With Automatic and no pictures here, the newest product photo is used; choose “My own pictures” for no picture."}
+              </p>
             </>
           ) : (
             <div className="space-y-3">

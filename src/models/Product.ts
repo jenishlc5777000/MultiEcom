@@ -43,6 +43,12 @@ const productSchema = new Schema(
     dimensions: String, // "9 cm x 8 cm"
     care: String,
     kitContents: [String], // CRAFT kits
+    /** GST % for this product; null/unset = store default (Admin → Settings). */
+    gstRate: { type: Number, default: null },
+    /** Shipping fee per unit in paise; null/unset = store flat fee. */
+    shippingFee: { type: Number, default: null },
+    /** When it was archived; it is deleted 30 days later (daily cron). */
+    archivedAt: { type: Date, default: null },
     variants: {
       type: [variantSchema],
       validate: [(v: unknown[]) => v.length > 0, "A product needs at least one variant"],

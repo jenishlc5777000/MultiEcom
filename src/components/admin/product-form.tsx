@@ -39,6 +39,7 @@ const blankVariant = (key = newKey()): Variant => ({ key, groupKey: `g-${key}`, 
 const EMPTY: Omit<ProductFormValues, "id"> = {
   name: "", slug: "", type: "" as ProductFormValues["type"], status: "DRAFT", availability: "READY_STOCK", category: "", isUnique: false, leadTimeDays: "",
   patternName: "", description: "", capacity: "", dimensions: "", care: "", kitContents: [], tags: [], images: [], variants: [], attributes: {},
+  gstRate: "", shippingFee: "",
 };
 
 export function ProductForm({
@@ -48,7 +49,10 @@ export function ProductForm({
   sizes,
   categoryForms = {},
   patternNames = [],
+  storeDefaults,
 }: {
+  /** Admin → Settings: the GST % and flat shipping fee (₹) used when a product has none of its own. */
+  storeDefaults?: { gstRate: number; shippingFee: number };
   initial: ProductFormValues | null;
   /** Category id → extra fields and hidden built-in inputs (Admin → Categories). */
   categoryForms?: Record<string, CategoryForm>;
@@ -534,6 +538,45 @@ export function ProductForm({
                   if (on) setV((s) => ({ ...s, isUnique: true, variants: s.variants.slice(0, 1).map((x) => ({ ...x, stock: Math.min(1, x.stock) })) }));
                 }}
               />
+            </div>
+          </section>
+
+          <section className={section} aria-labelledby="sec-tax">
+            <h2 id="sec-tax" className={h2}>Shipping &amp; GST</h2>
+            <div className="space-y-4">
+              <Field
+                label="GST (%)"
+                htmlFor="gstRate"
+                hint={v.gstRate === "" ? `Empty = store default${storeDefaults ? ` (${storeDefaults.gstRate}%)` : ""}. Added on top of the price at checkout.` : "This product's own rate, added on top of the price at checkout."}
+              >
+                <TextInput
+                  id="gstRate"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  max={40}
+                  step="0.01"
+                  placeholder={storeDefaults ? `Default: ${storeDefaults.gstRate}` : "Default"}
+                  value={v.gstRate}
+                  onChange={(e) => set("gstRate", e.target.value === "" ? "" : Number(e.target.value))}
+                />
+              </Field>
+              <Field
+                label="Shipping fee per item (₹)"
+                htmlFor="shippingFee"
+                hint={v.shippingFee === "" ? `Empty = store flat fee${storeDefaults ? ` (₹${storeDefaults.shippingFee} per order)` : ""}.` : "Charged for each unit of this product. Free-shipping over a set amount still applies."}
+              >
+                <TextInput
+                  id="shippingFee"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  placeholder="Default"
+                  value={v.shippingFee}
+                  onChange={(e) => set("shippingFee", e.target.value === "" ? "" : Number(e.target.value))}
+                />
+              </Field>
             </div>
           </section>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { customerRegisterAction, customerSignInAction, demoSignInAction, ownerSignInAction } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { FieldError, Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 /** Customer email + password: "Sign in" and "Create account" tabs. */
-export function CustomerAuthForm({ callbackUrl }: { callbackUrl: string }) {
+export function CustomerAuthForm({ callbackUrl, forgotPassword = false }: { callbackUrl: string; forgotPassword?: boolean }) {
   const [mode, setMode] = useState<"signin" | "register">("signin");
   const [signInState, signInAction, signingIn] = useActionState(customerSignInAction, undefined);
   const [registerState, registerAction, registering] = useActionState(customerRegisterAction, undefined);
@@ -49,7 +50,12 @@ export function CustomerAuthForm({ callbackUrl }: { callbackUrl: string }) {
           <Input id="email" name="email" type="email" autoComplete="email" inputMode="email" required defaultValue={state?.email} />
         </div>
         <div>
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-baseline justify-between gap-3">
+            <Label htmlFor="password">Password</Label>
+            {!register && forgotPassword && (
+              <Link href="/login/forgot" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">Forgot password?</Link>
+            )}
+          </div>
           <Input
             id="password"
             name="password"

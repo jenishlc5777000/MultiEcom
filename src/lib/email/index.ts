@@ -1,4 +1,5 @@
 import "server-only";
+import nodemailer, { type Transporter } from "nodemailer";
 import { Resend } from "resend";
 import { env } from "@/config/env";
 import { siteConfig } from "@/config/site";
@@ -7,19 +8,42 @@ import { formatINR } from "@/lib/utils";
 import { getIntegrations } from "@/services/integrations.service";
 
 let resend: { key: string; client: Resend } | undefined;
+let gmailTransport: { key: string; client: Transporter } | undefined;
+
+/** True when emails can actually be sent (Gmail or Resend set up in Admin → Integrations). */
+export async function emailConfigured() {
+  const { email, gmail } = await getIntegrations();
+  return Boolean((gmail.user && gmail.appPassword) || email.apiKey);
+}
 
 /**
- * Sends through Resend with the key from Admin → Integrations (or .env).
- * In development without a key the email is printed to the server console.
+ * Sends through Gmail (address + app password from Admin → Integrations) when
+ * set, otherwise Resend (API key from Admin → Integrations or .env).
+ * In development with neither, the email is printed to the server console.
  */
 async function send(to: string, subject: string, html: string, text: string, replyTo?: string) {
-  const { email } = await getIntegrations();
+  const { email, gmail } = await getIntegrations();
+  if (gmail.user && gmail.appPassword) {
+    const key = `${gmail.user}|${gmail.appPassword}`;
+    if (!gmailTransport || gmailTransport.key !== key) {
+      gmailTransport = { key, client: nodemailer.createTransport({ service: "gmail", auth: { user: gmail.user, pass: gmail.appPassword } }) };
+    }
+    try {
+      await gmailTransport.client.sendMail({ from: { name: siteConfig.name, address: gmail.user }, to, subject, html, text, ...(replyTo ? { replyTo } : {}) });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new Error(/535|Username and Password not accepted|BadCredentials/i.test(msg)
+        ? "Gmail rejected the sign-in. Use a Google app password (not your normal password) with 2-Step Verification on."
+        : `Gmail send failed: ${msg}`);
+    }
+    return;
+  }
   if (!email.apiKey) {
     if (env().NODE_ENV !== "production") {
       console.info(`\n[email:dev] to=${to}\n  subject: ${subject}\n  ${text}\n`);
       return;
     }
-    throw new Error("Email is not configured. Add a Resend API key in Admin → Integrations.");
+    throw new Error("Email is not configured. Add Gmail or a Resend API key in Admin → Integrations.");
   }
   if (!resend || resend.key !== email.apiKey) resend = { key: email.apiKey, client: new Resend(email.apiKey) };
   const { error } = await resend.client.emails.send({ from: email.from, to, subject, html, text, ...(replyTo ? { replyTo } : {}) });
@@ -33,6 +57,18 @@ const escape = (s: string) =>
 export async function sendPlainEmail(to: string, subject: string, body: string, replyTo?: string) {
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1A1917;white-space:pre-wrap">${escape(body)}</div>`;
   await send(to, subject, html, body, replyTo);
+}
+
+/** "Reset your password" link (valid for 30 minutes). */
+export async function sendPasswordResetEmail(to: string, link: string) {
+  const html = `
+    <div style="font-family:Arial,sans-serif;background:#FAF6EF;padding:32px;color:#1F2430">
+      <h1 style="font-family:Georgia,serif;color:#0F2A5C;font-size:22px;margin:0 0 16px">${escape(siteConfig.name)}</h1>
+      <p>We got a request to reset the password for your account.</p>
+      <p style="margin:24px 0"><a href="${escape(link)}" style="background:#0F2A5C;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none">Choose a new password</a></p>
+      <p style="color:#6B6F7A;font-size:13px">The link works for 30 minutes. If you didn't ask for this, ignore this email and your password stays the same.</p>
+    </div>`;
+  await send(to, `Reset your ${siteConfig.name} password`, html, `Reset your password: ${link}\n\nThe link works for 30 minutes. If you didn't ask for this, ignore this email.`);
 }
 
 const STATUS_COPY: Partial<Record<OrderStatus, { subject: string; body: string }>> = {

@@ -253,7 +253,11 @@ const integrationsInput = z.object({
     clientId: z.union([z.string().trim().max(200).regex(/^[\w.-]+\.apps\.googleusercontent\.com$/, "Google client IDs end with .apps.googleusercontent.com"), z.literal("")]),
     clientSecret: secret,
   }),
-  login: z.object({ methods: z.enum(LOGIN_METHODS) }),
+  gmail: z.object({
+    user: z.union([z.string().trim().toLowerCase().email("Enter the Gmail address that sends the emails"), z.literal("")]),
+    appPassword: secret,
+  }),
+  login: z.object({ methods: z.enum(LOGIN_METHODS), forgotPassword: z.boolean().default(false) }),
   storage: z.object({
     provider: z.enum(STORAGE_PROVIDERS),
     cloudName: z.union([z.string().trim().regex(/^[\w-]{1,100}$/, "The cloud name has only letters, numbers, - and _"), z.literal("")]),

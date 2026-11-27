@@ -31,7 +31,7 @@ export async function reserveLine(line: Line, session: ClientSession) {
 
   const mto = await Product.findOne(
     { ...base, availability: "MADE_TO_ORDER", "variants._id": line.variantId },
-    { name: 1, slug: 1, type: 1, availability: 1, images: 1, "variants.$": 1 },
+    { name: 1, slug: 1, type: 1, availability: 1, images: 1, "variants.$": 1, gstRate: 1, shippingFee: 1 },
     { session },
   ).lean<LeanProduct>();
   if (mto) return { product: mto, reserved: false };
@@ -42,7 +42,7 @@ export async function reserveLine(line: Line, session: ClientSession) {
       variants: { $elemMatch: { _id: line.variantId, isActive: { $ne: false }, stock: { $gte: line.qty } } },
     },
     { $inc: { "variants.$.stock": -line.qty } },
-    { session, new: true, projection: { name: 1, slug: 1, type: 1, availability: 1, isUnique: 1, images: 1, variants: 1 } },
+    { session, new: true, projection: { name: 1, slug: 1, type: 1, availability: 1, isUnique: 1, images: 1, variants: 1, gstRate: 1, shippingFee: 1 } },
   ).lean<LeanProduct>();
 
   if (!updated) {

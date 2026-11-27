@@ -8,12 +8,16 @@ import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/guards";
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
+import { ChangePasswordForm } from "@/components/auth/password-forms";
 import { getOrdersForUser } from "@/services/order.service";
+import { hasPassword } from "@/services/password.service";
 
 export const metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
   const user = await requireUser("/profile");
+  const isCustomer = user.role !== "owner";
+  const passwordSet = isCustomer ? await hasPassword(user.id) : false;
   const orders = (await getOrdersForUser(user.id)).filter((o) => o.status !== "PENDING_PAYMENT" || o.paymentStatus !== "PENDING");
 
   return (
@@ -50,6 +54,7 @@ export default async function ProfilePage() {
                     <p className="text-sm text-muted">
                       {new Date(o.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" })} · {o.items.length} item{o.items.length === 1 ? "" : "s"} · {formatINR(o.total)}
                     </p>
+                    <span className="mt-1 inline-block rounded-pill bg-surface px-2 py-0.5 text-xs sm:hidden">{ORDER_STATUS_LABEL[o.status as OrderStatus] ?? o.status}</span>
                   </div>
                   <span className="hidden text-sm sm:block">{ORDER_STATUS_LABEL[o.status as OrderStatus] ?? o.status}</span>
                   <ArrowUpRight className="size-5 shrink-0 text-muted transition-transform duration-300 group-hover:rotate-45 group-hover:text-ink" aria-hidden />
@@ -58,6 +63,16 @@ export default async function ProfilePage() {
             ))}
           </ul>
         </section>
+
+        {isCustomer && (
+          <section className="space-y-4" aria-labelledby="pw-heading">
+            <h2 id="pw-heading" className="text-h3">Password</h2>
+            <p className="text-sm text-muted">
+              {passwordSet ? "Change the password you sign in with." : "You sign in with Google. Set a password to also sign in with your email and password."}
+            </p>
+            <ChangePasswordForm hasPassword={passwordSet} />
+          </section>
+        )}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FormMessage, TextInput } from "./form";
 
 type Values = {
-  shippingFlatFee: number; freeShippingThreshold: number; returnWindowDays: number; unpaidOrderTtlMinutes: number;
+  shippingFlatFee: number; freeShippingThreshold: number; gstRate: number; returnWindowDays: number; unpaidOrderTtlMinutes: number;
   announcement: string; contactEmail: string; contactPhone: string; instagram: string;
 };
 
@@ -33,13 +33,17 @@ export function SettingsForm({ initial }: { initial: Values }) {
       }}
     >
       <section className={section}>
-        <h2 className="mb-5 font-sans text-[15px] font-semibold">Shipping &amp; orders</h2>
+        <h2 className="mb-1 font-sans text-[15px] font-semibold">Shipping, GST &amp; orders</h2>
+        <p className="mb-5 text-sm text-muted">Defaults for every product. A product can use its own shipping fee or GST rate (Products → edit → Shipping &amp; GST).</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Flat shipping fee (₹)" htmlFor="ship" hint="0 means free shipping on every order.">
             <TextInput id="ship" type="number" min={0} step="1" value={v.shippingFlatFee} onChange={set("shippingFlatFee", true)} />
           </Field>
           <Field label="Free shipping over (₹)" htmlFor="free" hint="0 turns the free-shipping threshold off.">
             <TextInput id="free" type="number" min={0} step="1" value={v.freeShippingThreshold} onChange={set("freeShippingThreshold", true)} />
+          </Field>
+          <Field label="GST (%)" htmlFor="gst" hint="Added on top of prices at checkout. Products can set their own rate. 0 = no GST.">
+            <TextInput id="gst" type="number" min={0} max={40} step="0.01" value={v.gstRate} onChange={set("gstRate", true)} />
           </Field>
           <Field label="Return window (days after delivery)" htmlFor="ret">
             <TextInput id="ret" type="number" min={0} max={90} value={v.returnWindowDays} onChange={set("returnWindowDays", true)} />

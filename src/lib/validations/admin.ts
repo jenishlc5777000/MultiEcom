@@ -51,6 +51,9 @@ export const productInput = z
     kitContents: z.array(z.string().trim().min(1).max(120)).max(30).default([]),
     tags: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
     images: z.array(imageInput).max(12).default([]),
+    /** "" = use the store default. */
+    gstRate: z.union([z.literal(""), z.coerce.number().min(0, "GST can't be negative").max(40, "GST can't be over 40%")]).optional().transform((v) => (v === "" || v === undefined ? null : v)),
+    shippingFee: z.union([z.literal(""), rupees]).optional().transform((v) => (v === "" || v === undefined ? null : v)),
     variants: z.array(variantInput).min(1, "Add at least one variant").max(60),
     attributes: attributesSchema,
   })
@@ -147,6 +150,7 @@ export const userBlockInput = z.object({ userId: objectId, blocked: z.boolean(),
 export const settingsInput = z.object({
   shippingFlatFee: rupees,
   freeShippingThreshold: rupees,
+  gstRate: z.coerce.number().min(0, "Can't be negative").max(40, "GST can't be over 40%").default(0),
   returnWindowDays: z.coerce.number().int().min(0).max(90),
   unpaidOrderTtlMinutes: z.coerce.number().int().min(5).max(1440),
   announcement: optionalText(160),

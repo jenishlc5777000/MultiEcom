@@ -26,9 +26,13 @@ const orderItemSchema = new Schema({
   glazeName: String,
   sizeLabel: String,
   imageUrl: String,
+  /** The product was deleted later (archived 30+ days); the line stays as the purchase record. */
+  productDeleted: { type: Boolean, default: false },
   unitPrice: { type: Number, required: true }, // paise
   qty: { type: Number, required: true, min: 1 },
   lineTotal: { type: Number, required: true }, // paise
+  gstRate: { type: Number, default: 0 }, // % applied to this line
+  shippingFee: { type: Number, default: null }, // own per-unit fee (paise), null = store fee
   stockReserved: { type: Boolean, default: true }, // false for made-to-order lines
 });
 
@@ -40,6 +44,7 @@ const orderSchema = new Schema(
     items: { type: [orderItemSchema], required: true },
     subtotal: { type: Number, required: true },
     shippingFee: { type: Number, default: 0 },
+    gstAmount: { type: Number, default: 0 }, // paise, added on top of subtotal
     discount: { type: Number, default: 0 },
     total: { type: Number, required: true },
     currency: { type: String, default: "INR" },

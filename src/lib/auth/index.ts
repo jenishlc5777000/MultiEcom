@@ -1,5 +1,6 @@
 import "server-only";
 import NextAuth from "next-auth";
+import { Types } from "mongoose";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { connectDB, getMongoClient } from "@/lib/db/connect";
 import { User, type UserRole } from "@/models/User";
@@ -15,6 +16,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth(async () => ({
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE },
   pages: { signIn: "/login", error: "/login" },
   events: {
+    /** Accounts made by Google sign-in come from the adapter, which doesn't set timestamps. */
+    async createUser({ user }) {
+      if (!user.id) return;
+      await connectDB();
+      const now = new Date();
+      await User.collection.updateOne({ _id: new Types.ObjectId(user.id), createdAt: { $exists: false } }, { $set: { createdAt: now, updatedAt: now } });
+    },
     async signIn({ user }) {
       if (!user.id) return;
       // Dynamic import avoids a static cycle (cart.service reads the session).

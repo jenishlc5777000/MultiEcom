@@ -17,8 +17,14 @@ const userSchema = new Schema(
     phone: String,
     /** Email + password customers only (scrypt). Never selected unless asked for. */
     passwordHash: { type: String, select: false },
+    /** Forgot password: sha256 of the emailed token, its expiry and when it was sent. */
+    resetTokenHash: { type: String, select: false },
+    resetTokenExpires: { type: Date, select: false },
+    resetRequestedAt: { type: Date, select: false },
     role: { type: String, enum: USER_ROLES, default: "customer" },
     addresses: [addressSchema],
+    /** Saved favourite products (newest first). */
+    favourites: { type: [{ type: Schema.Types.ObjectId, ref: "Product" }], default: [] },
     /** Blocked users cannot sign in or check out. */
     isBlocked: { type: Boolean, default: false },
     blockedReason: String,

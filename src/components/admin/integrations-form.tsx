@@ -72,6 +72,8 @@ export function IntegrationsForm({ initial }: { initial: IntegrationsAdminView }
   const [sms, setSms] = useState({ ...initial.sms, apiKey: "" });
   const [google, setGoogle] = useState({ clientId: initial.google.clientId, clientSecret: "" });
   const [loginMethods, setLoginMethods] = useState<LoginMethod>(initial.login.methods);
+  const [forgotPassword, setForgotPassword] = useState(initial.login.forgotPassword);
+  const [gmail, setGmail] = useState({ user: initial.gmail.user, appPassword: "" });
   const [storage, setStorage] = useState({ ...initial.storage, cloudSecret: "", s3Secret: "", blobToken: "" });
   const [clear, setClear] = useState<SecretField[]>([]);
   const [testTo, setTestTo] = useState({ email: "", phone: "" });
@@ -104,7 +106,7 @@ export function IntegrationsForm({ initial }: { initial: IntegrationsAdminView }
         start(async () => {
           const st = storage;
           const r = await saveIntegrationsAction({
-            razorpay: rp, email, sms, google, login: { methods: loginMethods }, clear,
+            razorpay: rp, email, gmail, sms, google, login: { methods: loginMethods, forgotPassword }, clear,
             storage: {
               provider: st.provider, cloudName: st.cloudName, cloudKey: st.cloudKey, cloudSecret: st.cloudSecret,
               s3Endpoint: st.s3Endpoint, s3Region: st.s3Region, s3Bucket: st.s3Bucket, s3KeyId: st.s3KeyId, s3Secret: st.s3Secret, s3PublicUrl: st.s3PublicUrl,
@@ -115,6 +117,7 @@ export function IntegrationsForm({ initial }: { initial: IntegrationsAdminView }
           if (r.ok) {
             setRp((s) => ({ ...s, keySecret: "", webhookSecret: "" }));
             setEmail((s) => ({ ...s, apiKey: "" }));
+            setGmail((s) => ({ ...s, appPassword: "" }));
             setSms((s) => ({ ...s, apiKey: "" }));
             setGoogle((s) => ({ ...s, clientSecret: "" }));
             setStorage((s) => ({ ...s, cloudSecret: "", s3Secret: "", blobToken: "" }));
@@ -161,6 +164,16 @@ export function IntegrationsForm({ initial }: { initial: IntegrationsAdminView }
           <p className="text-sm text-mto">Until Google is connected, email + password stays on so customers aren&apos;t locked out.</p>
         )}
         <p className="text-xs text-muted">The store owner always signs in on the admin login with email and password, whatever you choose here.</p>
+        <label className="flex items-start gap-3 rounded-md border border-line p-3 text-sm">
+          <input type="checkbox" className="mt-0.5 size-4 accent-ink" checked={forgotPassword} onChange={(e) => setForgotPassword(e.target.checked)} />
+          <span>
+            <span className="block font-medium">Show &ldquo;Forgot password?&rdquo;</span>
+            <span className="block text-xs text-muted">
+              Customers get a reset link by email. Stays hidden until email sending is set up below (Gmail or Resend)
+              {!(initial.gmail.appPassword.saved && initial.gmail.user) && !initial.email.apiKey.saved ? ": not set up yet, so it's hidden now." : "."}
+            </span>
+          </span>
+        </label>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Google client ID" htmlFor="gid" hint={initial.google.clientIdFromEnv && !google.clientId ? "Currently using the client ID from .env" : "Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web application)"}>
             <TextInput id="gid" value={google.clientId} placeholder="1234-abc.apps.googleusercontent.com" onChange={(e) => setGoogle((s) => ({ ...s, clientId: e.target.value.trim() }))} />
@@ -286,13 +299,32 @@ export function IntegrationsForm({ initial }: { initial: IntegrationsAdminView }
         </div>
       </section>
 
+      {/* Gmail */}
+      <section className={section}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-sans text-[15px] font-semibold">Email: Gmail</h2>
+          <StatusDot ok={Boolean(initial.gmail.user && initial.gmail.appPassword.saved)} label={initial.gmail.user && initial.gmail.appPassword.saved ? "Connected (used for all emails)" : "Not connected"} />
+        </div>
+        <p className="text-sm text-muted">
+          Sends password-reset links, order emails and contact-form messages from your Gmail address. When set, it&apos;s used instead of Resend.
+          Use a Google <strong>app password</strong>, not your normal password: Google Account → Security → 2-Step Verification (turn on) → App passwords → create one and paste the 16 letters here.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Gmail address" htmlFor="gu">
+            <TextInput id="gu" type="email" value={gmail.user} placeholder="yourstore@gmail.com" onChange={(e) => setGmail((s) => ({ ...s, user: e.target.value }))} />
+          </Field>
+          <SecretInput id="gp" label="App password" state={initial.gmail.appPassword} value={gmail.appPassword} onChange={(v) => setGmail((s) => ({ ...s, appPassword: v }))} cleared={clear.includes("gmail.appPassword")} onClear={toggleClear("gmail.appPassword")} />
+        </div>
+        <p className="text-xs text-muted">Save, then use &ldquo;Send test email&rdquo; below to check it. Gmail allows about 500 emails a day.</p>
+      </section>
+
       {/* Email */}
       <section className={section}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-sans text-[15px] font-semibold">Email: Resend</h2>
+          <h2 className="font-sans text-[15px] font-semibold">Email: Resend (optional if Gmail is set)</h2>
           <StatusDot ok={initial.email.apiKey.saved} label={initial.email.apiKey.saved ? "Connected" : "Not connected (emails print to the server log in development)"} />
         </div>
-        <p className="text-sm text-muted">Sends sign-in codes, order emails and contact-form messages.</p>
+        <p className="text-sm text-muted">Sends order emails, password-reset links and contact-form messages when Gmail isn&apos;t set up. The test below uses whichever is active.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <SecretInput id="ek" label="API key" state={initial.email.apiKey} value={email.apiKey} onChange={(v) => setEmail((s) => ({ ...s, apiKey: v }))} cleared={clear.includes("email.apiKey")} onClear={toggleClear("email.apiKey")} />
           <Field label="From address" htmlFor="ef" hint={`Must be on a domain verified in Resend. Default: ${initial.email.fromDefault}`}>

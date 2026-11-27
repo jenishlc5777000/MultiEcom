@@ -69,7 +69,6 @@ function ListRows({ products }: { products: ProductCardDTO[] }) {
                 <span className="block font-display text-xl leading-tight transition-colors group-hover:text-accent md:text-2xl">{p.name}</span>
                 <span className="flex flex-wrap items-center gap-2 text-sm text-muted">
                   <AvailabilityBadge availability={p.availability} />
-                  <span>{p.type === "CRAFT" ? "Craft kit" : "Ceramic"}</span>
                   {p.swatches.length > 0 && (
                     <span className="flex items-center gap-1" aria-label={`Colors: ${p.swatches.map((s) => s.name).join(", ")}`}>
                       {p.swatches.slice(0, 5).map((s) => <span key={s.name} className="size-3 rounded-full border border-ink/15" style={{ backgroundColor: s.hex ?? "#ccc" }} />)}

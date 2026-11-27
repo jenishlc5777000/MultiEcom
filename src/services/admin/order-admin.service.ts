@@ -245,11 +245,38 @@ async function refundOrder(orderId: string) {
     ]);
   } catch (e) {
     console.error("[refund]", e);
-    await Order.updateOne(
-      { _id: orderId },
-      { $set: { refund: { status: "FAILED", amount: order.total, note: e instanceof Error ? e.message : "Refund failed", at: new Date() } } },
-    );
+    await Order.updateOne({ _id: orderId }, { $set: { refund: { status: "FAILED", amount: order.total, note: refundFailureNote(e), at: new Date() } } });
   }
+}
+
+/**
+ * Razorpay rejects with `{ statusCode, error: { description } }` (not an Error),
+ * so pull out its reason and add what usually fixes it.
+ */
+function refundFailureNote(e: unknown) {
+  const err = e as { statusCode?: number; error?: { description?: string }; message?: string } | null;
+  const reason = err?.error?.description || err?.message || "Refund failed";
+  const tip = /balance/i.test(reason)
+    ? " Add funds to your Razorpay balance (Dashboard → Balances), then press Retry refund."
+    : err?.statusCode === 401
+      ? " The Razorpay keys were rejected. Check Admin → Integrations → Razorpay."
+      : /does not exist|not found|invalid/i.test(reason)
+        ? " The payment may have been made with other Razorpay keys (e.g. test mode). Refund it in that Razorpay account, then mark it processed."
+        : " You can press Retry refund, or refund it in the Razorpay dashboard and mark it processed.";
+  return `Razorpay: ${reason}.${tip}`.slice(0, 500);
+}
+
+/** Owner retries a refund that failed (or was never sent) through Razorpay. */
+export async function retryRefund(orderId: string) {
+  await connectDB();
+  const order = await Order.findById(orderId).select("paymentStatus refund").lean();
+  if (!order) throw new OrderActionError("Order not found.");
+  if (order.paymentStatus !== "PAID" || !["PENDING", "FAILED"].includes(order.refund?.status ?? "")) {
+    throw new OrderActionError("There's no failed refund to retry on this order.");
+  }
+  await refundOrder(orderId);
+  const after = await Order.findById(orderId).select("refund").lean();
+  if (after?.refund?.status !== "PROCESSED") throw new OrderActionError(after?.refund?.note ?? "The refund failed again.");
 }
 
 /** Customer cancels their own paid order, when Orders → Order steps allows it. Stock goes back and the payment is refunded. */

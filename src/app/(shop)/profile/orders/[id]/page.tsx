@@ -43,11 +43,11 @@ export default async function CustomerOrderPage({ params }: { params: Promise<{ 
       <div className="container grid gap-12 lg:grid-cols-12">
         <div className="space-y-10 lg:col-span-7">
           {!closed && (
-            <ol className="grid gap-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }} aria-label="Order progress">
+            <ol className="space-y-3 sm:grid sm:gap-2 sm:space-y-0" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }} aria-label="Order progress">
               {steps.map((s) => (
-                <li key={s.key} className="space-y-2">
-                  <div className={`h-1 rounded-full transition-colors duration-700 ${s.done ? "bg-ink" : "bg-line"}`} />
-                  <p className={`text-xs leading-snug ${s.current ? "font-medium text-ink" : s.done ? "text-ink" : "text-muted"}`}>
+                <li key={s.key} className="flex items-center gap-3 sm:block sm:space-y-2">
+                  <div className={`size-3 shrink-0 rounded-full transition-colors duration-700 sm:h-1 sm:w-auto ${s.done ? "bg-ink" : "bg-line"} ${s.current ? "ring-4 ring-ink/15 sm:ring-0" : ""}`} />
+                  <p className={`text-sm leading-snug sm:text-xs ${s.current ? "font-medium text-ink" : s.done ? "text-ink" : "text-muted"}`}>
                     {s.label}
                     {s.current && <span className="sr-only"> (current)</span>}
                   </p>
@@ -72,9 +72,13 @@ export default async function CustomerOrderPage({ params }: { params: Promise<{ 
                   {i.imageUrl && <Image src={i.imageUrl} alt="" fill sizes="80px" className="object-cover" />}
                 </div>
                 <div className="flex-1">
-                  <Link href={`/products/${i.productSlug}`} className="font-medium hover:underline">{i.productName}</Link>
+                  {i.productDeleted ? (
+                    <span className="font-medium">{i.productName} <span className="text-xs font-normal text-muted">(no longer available)</span></span>
+                  ) : (
+                    <Link href={`/products/${i.productSlug}`} className="font-medium hover:underline">{i.productName}</Link>
+                  )}
                   <p className="text-sm text-muted">{[i.glazeName, i.sizeLabel].filter(Boolean).join(" · ")}{i.qty > 1 ? ` · ×${i.qty}` : ""}</p>
-                  {status === "DELIVERED" && <Link href={`/products/${i.productSlug}#reviews`} className="text-sm text-accent underline">Write a review</Link>}
+                  {status === "DELIVERED" && !i.productDeleted && <Link href={`/products/${i.productSlug}#reviews`} className="text-sm text-accent underline">Write a review</Link>}
                 </div>
                 <p className="tabular-nums">{formatINR(i.lineTotal)}</p>
               </li>
@@ -128,6 +132,7 @@ export default async function CustomerOrderPage({ params }: { params: Promise<{ 
           <dl className="space-y-1 border-t border-line pt-4 text-sm">
             <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatINR(order.subtotal)}</dd></div>
             <div className="flex justify-between"><dt className="text-muted">Shipping</dt><dd>{order.shippingFee ? formatINR(order.shippingFee) : "Free"}</dd></div>
+            {(order.gstAmount ?? 0) > 0 && <div className="flex justify-between"><dt className="text-muted">GST</dt><dd>{formatINR(order.gstAmount ?? 0)}</dd></div>}
             <div className="flex justify-between font-semibold"><dt>Total</dt><dd>{formatINR(order.total)}</dd></div>
           </dl>
         </aside>

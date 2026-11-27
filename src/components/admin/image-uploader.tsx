@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, ImagePlus, Loader2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ImagePlus, Loader2, Star, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { uploadImageAction } from "@/actions/admin/catalog.actions";
 import { cn } from "@/lib/utils";
@@ -156,9 +156,10 @@ export function ImageUploader({ value, onChange, folder, path = [], max = 12, la
           <li key={img.publicId + i} className="group space-y-2">
             <div className="relative aspect-[4/5] overflow-hidden rounded-md border border-line bg-surface">
               <Image src={img.url} alt={img.alt || `${label} ${i + 1}`} fill sizes="200px" className="object-cover" />
-              {i === 0 && <span className="absolute left-2 top-2 rounded-pill bg-ink px-2 py-0.5 text-[11px] text-canvas">Cover</span>}
+              {i === 0 && value.length > 1 && <span className="absolute left-2 top-2 rounded-pill bg-ink px-2 py-0.5 text-[11px] text-canvas">Shown first</span>}
               <div className="absolute inset-x-2 bottom-2 flex justify-between gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                 <span className="flex gap-1">
+                  {i > 0 && <IconBtn label="Show this photo first" onClick={() => onChange([img, ...value.filter((_, j) => j !== i)])}><Star /></IconBtn>}
                   <IconBtn label="Move left" disabled={i === 0} onClick={() => move(i, -1)}><ArrowLeft /></IconBtn>
                   <IconBtn label="Move right" disabled={i === value.length - 1} onClick={() => move(i, 1)}><ArrowRight /></IconBtn>
                 </span>
@@ -193,7 +194,7 @@ export function ImageUploader({ value, onChange, folder, path = [], max = 12, la
         )}
       </ul>
       <input ref={input} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1} onChange={(e) => upload(e.target.files)} />
-      <p className="text-xs text-muted">JPG, PNG, WebP, AVIF or iPhone photos. Each image is automatically resized and compressed (usually under 500 KB) before upload. The first photo is the cover.</p>
+      <p className="text-xs text-muted">JPG, PNG, WebP, AVIF or iPhone photos. Each image is automatically resized and compressed (usually under 500 KB) before upload. The photo marked “Shown first” is the one customers see first; tap ★ on another photo to show it first.</p>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
   );

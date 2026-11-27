@@ -10,6 +10,7 @@ export async function getSettingsForEdit() {
   return {
     shippingFlatFee: (s?.shippingFlatFee ?? 0) / 100,
     freeShippingThreshold: (s?.freeShippingThreshold ?? 0) / 100,
+    gstRate: s?.gstRate ?? 0,
     returnWindowDays: s?.returnWindowDays ?? 7,
     unpaidOrderTtlMinutes: s?.unpaidOrderTtlMinutes ?? 30,
     announcement: s?.announcement ?? "",
@@ -22,6 +23,7 @@ export async function getSettingsForEdit() {
 export async function saveSettings(input: {
   shippingFlatFee: number;
   freeShippingThreshold: number;
+  gstRate: number;
   returnWindowDays: number;
   unpaidOrderTtlMinutes: number;
   announcement?: string;
@@ -36,6 +38,7 @@ export async function saveSettings(input: {
       $set: {
         shippingFlatFee: Math.round(input.shippingFlatFee * 100),
         freeShippingThreshold: Math.round(input.freeShippingThreshold * 100),
+        gstRate: input.gstRate,
         returnWindowDays: input.returnWindowDays,
         unpaidOrderTtlMinutes: input.unpaidOrderTtlMinutes,
         announcement: input.announcement ?? "",

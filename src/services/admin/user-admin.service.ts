@@ -18,7 +18,7 @@ export async function listUsers({ q, role, page = 1 }: { q?: string; role?: stri
     filter.$or = [{ email: rx }, { name: rx }, { phone: rx }];
   }
   const [users, total] = await Promise.all([
-    User.find(filter).select("name email role isBlocked createdAt").sort({ createdAt: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+    User.find(filter).select("name email role isBlocked createdAt").sort({ _id: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
     User.countDocuments(filter),
   ]);
 
@@ -38,7 +38,7 @@ export async function listUsers({ q, role, page = 1 }: { q?: string; role?: stri
         email: u.email,
         role: (u.role ?? "customer") as "customer" | "owner",
         isBlocked: Boolean(u.isBlocked),
-        joinedAt: (u.createdAt ?? new Date(0)).toISOString(),
+        joinedAt: joinedAt(u).toISOString(),
         orders: s?.orders ?? 0,
         spent: s?.spent ?? 0,
         lastOrderAt: s?.last?.toISOString() ?? null,
@@ -47,6 +47,14 @@ export async function listUsers({ q, role, page = 1 }: { q?: string; role?: stri
     total,
     pageCount: Math.max(1, Math.ceil(total / PAGE_SIZE)),
   };
+}
+
+/**
+ * When the account was created. Accounts made by Google sign-in (the Auth.js
+ * adapter) have no createdAt, so fall back to the time inside the document id.
+ */
+export function joinedAt(u: { _id: Types.ObjectId; createdAt?: Date | null }) {
+  return u.createdAt ?? u._id.getTimestamp();
 }
 
 export async function getUserDetail(id: string) {
@@ -60,7 +68,7 @@ export async function getUserDetail(id: string) {
   ]);
   const paid = orders.filter((o) => o.paymentStatus === "PAID");
   return {
-    user,
+    user: { ...user, createdAt: joinedAt(user) },
     orders,
     reviewCount: reviews,
     lifetimeValue: paid.reduce((n, o) => n + o.total, 0),

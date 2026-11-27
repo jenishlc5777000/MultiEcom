@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/guards";
 import { safeCallbackUrl } from "@/lib/safe-redirect";
 import { getIntegrations } from "@/services/integrations.service";
+import { passwordResetAvailable } from "@/services/password.service";
 
 export const metadata = { title: "Sign in" };
 
@@ -16,16 +17,18 @@ const errors: Record<string, string> = {
   OwnerGoogle: "Admin accounts can't use Google sign-in. Sign in with your admin email and password.",
 };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string; error?: string }> }) {
-  const { callbackUrl: raw, error } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string; error?: string; reset?: string }> }) {
+  const { callbackUrl: raw, error, reset } = await searchParams;
   const callbackUrl = safeCallbackUrl(raw);
   if (await getCurrentUser()) redirect(callbackUrl);
 
-  const errorBox = error && (
+  const errorBox = error ? (
     <p role="alert" className="rounded-lg bg-danger/10 p-3 text-sm text-danger">
       {errors[error] ?? "Sign-in failed. Please try again."}
     </p>
-  );
+  ) : reset ? (
+    <p role="status" className="rounded-lg bg-ready/10 p-3 text-sm text-ready">Password changed. Sign in with your new password.</p>
+  ) : null;
 
   // Admin sign-in (reached from /admin): owner email + password only, no Google.
   const adminLogin = callbackUrl === "/admin" || callbackUrl.startsWith("/admin/");
@@ -75,7 +78,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <span className="h-px flex-1 bg-surface-strong" /> or <span className="h-px flex-1 bg-surface-strong" />
         </div>
       )}
-      {passwordEnabled && <CustomerAuthForm callbackUrl={callbackUrl} />}
+      {passwordEnabled && <CustomerAuthForm callbackUrl={callbackUrl} forgotPassword={await passwordResetAvailable()} />}
       {demoLoginEnabled() && <DemoLoginForm callbackUrl={callbackUrl} />}
     </div>
   );

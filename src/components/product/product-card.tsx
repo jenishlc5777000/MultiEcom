@@ -87,7 +87,7 @@ export function ProductCard({ product, priority = false, sizes }: { product: Pro
               {extra > 0 && <span className="text-xs text-muted">+{extra}</span>}
             </div>
           ) : (
-            <span className="text-xs text-muted">{product.type === "CRAFT" ? "Craft kit" : "Ceramic"}</span>
+            <span aria-hidden />
           )}
           <span className="product-card-rating"><RatingStars value={product.ratingAvg} count={product.ratingCount} compact /></span>
         </div>

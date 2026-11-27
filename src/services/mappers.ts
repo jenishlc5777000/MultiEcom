@@ -26,6 +26,8 @@ export type LeanProduct = {
   type: ProductType;
   availability: Availability;
   isUnique?: boolean | null;
+  gstRate?: number | null;
+  shippingFee?: number | null;
   images?: Image[];
   variants: LeanVariant[];
   ratingAvg?: number | null;

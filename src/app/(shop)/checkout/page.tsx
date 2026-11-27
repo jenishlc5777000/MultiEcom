@@ -17,7 +17,7 @@ export default async function CheckoutPage() {
   await connectDB();
   const [profile, totals] = await Promise.all([
     User.findById(user.id).select("addresses").lean(),
-    quoteTotals(cart.subtotal),
+    quoteTotals(cart.lines),
   ]);
   const saved = profile?.addresses?.[0];
 
@@ -54,6 +54,12 @@ export default async function CheckoutPage() {
             <span>Shipping</span>
             <span>{totals.shippingFee ? formatINR(totals.shippingFee) : "Free"}</span>
           </div>
+          {totals.gstAmount > 0 && (
+            <div className="flex justify-between">
+              <span>GST</span>
+              <span>{formatINR(totals.gstAmount)}</span>
+            </div>
+          )}
         </div>
         <div className="flex justify-between font-semibold text-ink">
           <span>Total</span>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { purgeArchivedProducts } from "@/services/admin/product-cleanup.service";
 import { expireUnpaidOrders } from "@/services/order.service";
 
 export const runtime = "nodejs";
@@ -11,5 +12,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const released = await expireUnpaidOrders();
-  return NextResponse.json({ released });
+  // Products archived 30+ days ago are deleted (photos, carts, favourites, reviews too).
+  const deletedProducts = await purgeArchivedProducts().catch((e) => {
+    console.error("[cron] purge archived products", e);
+    return -1;
+  });
+  return NextResponse.json({ released, deletedProducts });
 }

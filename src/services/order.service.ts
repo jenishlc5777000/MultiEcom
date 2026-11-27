@@ -2,7 +2,8 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { Types } from "mongoose";
 import { connectDB, withTransaction } from "@/lib/db/connect";
-import { Cart, Glaze, Order, Setting, Size } from "@/models";
+import { computeTotals, gstRateFor } from "@/lib/pricing";
+import { Cart, Glaze, Order, Product, Setting, Size } from "@/models";
 import type { Address } from "@/models";
 import { pruneMissingCartItems } from "./cart.service";
 import { releaseLines, reserveLine } from "./inventory.service";
@@ -20,20 +21,23 @@ async function getStoreSettings() {
   return {
     shippingFlatFee: s?.shippingFlatFee ?? 0,
     freeShippingThreshold: s?.freeShippingThreshold ?? 0,
+    gstRate: s?.gstRate ?? 0,
     unpaidOrderTtlMinutes: s?.unpaidOrderTtlMinutes ?? 30,
   };
 }
 
-function shippingFor(subtotal: number, s: Awaited<ReturnType<typeof getStoreSettings>>) {
-  const free = s.freeShippingThreshold > 0 && subtotal >= s.freeShippingThreshold;
-  return free ? 0 : s.shippingFlatFee;
-}
-
-/** Same rule createOrderFromCart applies, for showing totals before payment. */
-export async function quoteTotals(subtotal: number) {
+/** Same rule createOrderFromCart applies (src/lib/pricing.ts), for showing totals before payment. */
+export async function quoteTotals(lines: { productId: string; lineTotal: number; qty: number }[]) {
   await connectDB();
-  const shippingFee = shippingFor(subtotal, await getStoreSettings());
-  return { subtotal, shippingFee, total: subtotal + shippingFee };
+  const [settings, products] = await Promise.all([
+    getStoreSettings(),
+    Product.find({ _id: { $in: lines.map((l) => l.productId) } }).select("gstRate shippingFee").lean(),
+  ]);
+  const byId = new Map(products.map((p) => [String(p._id), p]));
+  return computeTotals(
+    lines.map((l) => ({ ...l, gstRate: byId.get(l.productId)?.gstRate ?? null, shippingFee: byId.get(l.productId)?.shippingFee ?? null })),
+    settings,
+  );
 }
 
 /**
@@ -80,6 +84,8 @@ export async function createOrderFromCart(user: { id: string; email: string }, a
         unitPrice: v.price,
         qty: line.qty,
         lineTotal: v.price * line.qty,
+        gstRate: gstRateFor({ gstRate: product.gstRate }, settings),
+        shippingFee: product.shippingFee ?? null,
         stockReserved: reserved,
       });
     }
@@ -91,8 +97,7 @@ export async function createOrderFromCart(user: { id: string; email: string }, a
     const glazeName = new Map(glazes.map((g) => [String(g._id), g.name]));
     const sizeLabel = new Map(sizes.map((s) => [String(s._id), s.label]));
 
-    const subtotal = items.reduce((n, i) => n + i.lineTotal, 0);
-    const shippingFee = shippingFor(subtotal, settings);
+    const { subtotal, shippingFee, gstAmount, total } = computeTotals(items, settings);
 
     const [created] = await Order.create(
       [
@@ -107,7 +112,8 @@ export async function createOrderFromCart(user: { id: string; email: string }, a
           })),
           subtotal,
           shippingFee,
-          total: subtotal + shippingFee,
+          gstAmount,
+          total,
           shippingAddress: address,
           timeline: [{ status: "PENDING_PAYMENT", note: "Order placed", by: "customer" }],
         },

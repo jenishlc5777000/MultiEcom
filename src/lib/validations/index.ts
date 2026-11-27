@@ -37,6 +37,13 @@ export const customerSignInSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email address."),
   password: z.string().min(1, "Enter your password.").max(128),
 });
+const newPassword = z.string().min(8, "Use at least 8 characters for your password.").max(128, "That password is too long.");
+export const resetPasswordSchema = z
+  .object({ email: z.string().trim().toLowerCase().email(), token: z.string().regex(/^[a-f0-9]{64}$/, "This reset link is broken."), password: newPassword, confirm: z.string() })
+  .refine((v) => v.password === v.confirm, { message: "The two passwords don't match.", path: ["confirm"] });
+export const changePasswordSchema = z
+  .object({ current: z.string().max(128).default(""), password: newPassword, confirm: z.string() })
+  .refine((v) => v.password === v.confirm, { message: "The two passwords don't match.", path: ["confirm"] });
 export const customerRegisterSchema = customerSignInSchema.extend({
   name: z.string().trim().min(2, "Enter your name.").max(80),
   password: z.string().min(8, "Use at least 8 characters for your password.").max(128, "That password is too long."),

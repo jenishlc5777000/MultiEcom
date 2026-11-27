@@ -92,6 +92,8 @@ export async function getProductForEdit(id: string) {
     dimensions: p.dimensions ?? "",
     care: p.care ?? "",
     kitContents: p.kitContents ?? [],
+    gstRate: (p.gstRate ?? "") as number | "",
+    shippingFee: (p.shippingFee == null ? "" : p.shippingFee / 100) as number | "",
     tags: p.tags ?? [],
     attributes: ((p as { attributes?: Record<string, string> }).attributes ?? {}) as Record<string, string>,
     images: (p.images ?? []).map((i) => ({ url: i.url, publicId: i.publicId, alt: i.alt ?? "" })),
@@ -125,6 +127,9 @@ function toDocument(input: ProductInput) {
     availability: input.isUnique && input.variants[0]?.stock === 0 && input.availability === "READY_STOCK" ? "SOLD" : input.availability,
     leadTimeDays: input.availability === "MADE_TO_ORDER" ? input.leadTimeDays : undefined,
     kitContents: input.type === "CRAFT" ? input.kitContents : [],
+    gstRate: input.gstRate ?? null,
+    ...(input.status === "ARCHIVED" ? {} : { archivedAt: null }),
+    shippingFee: input.shippingFee == null ? null : toPaise(input.shippingFee),
     variants: input.variants.map((v) => ({
       ...(v.id && Types.ObjectId.isValid(v.id) ? { _id: new Types.ObjectId(v.id) } : {}),
       glaze: v.glaze,
@@ -203,7 +208,17 @@ export async function updateProduct(id: string, input: ProductInput) {
 
 export async function setProductStatus(id: string, status: "DRAFT" | "ACTIVE" | "ARCHIVED") {
   await connectDB();
-  await Product.updateOne({ _id: id }, { $set: { status } });
+  if (status === "ARCHIVED") await Product.updateOne({ _id: id, status: { $ne: "ARCHIVED" } }, { $set: { status, archivedAt: new Date() } });
+  else await Product.updateOne({ _id: id }, { $set: { status, archivedAt: null } });
+}
+
+/** When an archived product will be deleted (30 days after archiving), or null. */
+export async function archiveDeleteDate(id: string) {
+  await connectDB();
+  if (!Types.ObjectId.isValid(id)) return null;
+  const p = await Product.findById(id).select("status archivedAt").lean();
+  if (p?.status !== "ARCHIVED") return null;
+  return new Date((p.archivedAt ?? new Date()).getTime() + 30 * 864e5);
 }
 
 /** Products that appear in orders are archived instead of deleted so history stays intact. */
@@ -211,7 +226,7 @@ export async function deleteProduct(id: string) {
   await connectDB();
   const used = await Order.exists({ "items.product": id });
   if (used) {
-    await Product.updateOne({ _id: id }, { $set: { status: "ARCHIVED" } });
+    await Product.updateOne({ _id: id, status: { $ne: "ARCHIVED" } }, { $set: { status: "ARCHIVED", archivedAt: new Date() } });
     return "archived" as const;
   }
   await Product.deleteOne({ _id: id });

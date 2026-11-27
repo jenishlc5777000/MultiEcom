@@ -26,7 +26,7 @@ export function ShoppingTab({ initial, products }: { initial: SiteConfig["shoppi
 
   return (
     <div className="space-y-6">
-      <Panel id="shop-favourites" title="Favourites" description="A heart on products; saved pieces are listed on /favourites. Saved in each visitor's browser, no sign-in needed.">
+      <Panel id="shop-favourites" title="Favourites" description="A heart on products; saved pieces are listed on /favourites. Works without signing in; signed-in customers keep their own favourites on their account.">
         <SwitchRow label="Favourites are on" checked={v.favourites.enabled} onChange={(x) => fav({ enabled: x })} />
         {v.favourites.enabled && (
           <div className="grid gap-2 sm:grid-cols-2">

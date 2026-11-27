@@ -9,6 +9,8 @@ const settingSchema = new Schema(
     freeShippingThreshold: { type: Number, default: 0 }, // 0 = disabled
     unpaidOrderTtlMinutes: { type: Number, default: 30 },
     returnWindowDays: { type: Number, default: 7 },
+    /** Default GST % added at checkout for products without their own rate (0 = no GST). */
+    gstRate: { type: Number, default: 0 },
     contactEmail: String,
     contactPhone: String,
     instagram: String,

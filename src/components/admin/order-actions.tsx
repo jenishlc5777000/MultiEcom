@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { markRefundProcessedAction, orderActionAction } from "@/actions/admin/order.actions";
+import { markRefundProcessedAction, orderActionAction, retryRefundAction } from "@/actions/admin/order.actions";
 import { Button } from "@/components/ui/button";
 import type { OrderActionInput } from "@/lib/validations/admin";
 import { Field, FormMessage, TextArea, TextInput } from "./form";
@@ -13,11 +13,11 @@ type Courier = { name: string; trackingUrl: string };
 
 const COPY: Record<Action, { label: string; variant: "primary" | "secondary" | "accent"; help: string }> = {
   approve: { label: "Approve order", variant: "primary", help: "Confirms the order and emails the customer." },
-  reject: { label: "Reject & refund", variant: "secondary", help: "Cancels the order, puts stock back and refunds the payment." },
+  reject: { label: "Reject & refund", variant: "secondary", help: "Before approval: you decline the order. It's cancelled, stock goes back, the full payment is refunded and the customer is told it was rejected (with your reason)." },
   start_production: { label: "Start production", variant: "secondary", help: "For made-to-order pieces. The customer sees “Being made”." },
   dispatch: { label: "Mark dispatched", variant: "primary", help: "Adds tracking and emails the customer." },
   deliver: { label: "Mark delivered", variant: "primary", help: "Opens returns and reviews for the customer." },
-  cancel: { label: "Cancel order", variant: "secondary", help: "Puts stock back and refunds the payment if it was paid." },
+  cancel: { label: "Cancel order", variant: "secondary", help: "After approval (or on request): the order is stopped. Stock goes back and the payment is refunded if it was paid." },
 };
 
 /** Owner actions for one order. Only the moves allowed from the current status are shown. */
@@ -169,7 +169,22 @@ export function OrderActions({
 
       {refundPending && (
         <div className="rounded-md border border-mto/30 bg-mto/10 p-4 text-sm text-mto">
-          <p>A refund still needs to be issued for this order. After refunding in the Razorpay dashboard (or by bank transfer), mark it done here.</p>
+          <p>The refund didn&apos;t go through (reason below, under Payment). Retry it, or refund in the Razorpay dashboard (or by bank transfer) and mark it done here.</p>
+          <Button
+            size="sm"
+            variant="primary"
+            className="mr-2 mt-3"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                const res = await retryRefundAction(orderId);
+                setMsg(res.ok ? { ok: true, message: "Refund sent to Razorpay." } : { ok: false, message: res.error });
+                router.refresh();
+              })
+            }
+          >
+            Retry refund
+          </Button>
           <Button
             size="sm"
             variant="secondary"

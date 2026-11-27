@@ -39,22 +39,26 @@ export type StorageSettings = {
 export type Integrations = {
   razorpay: { keyId: string; keySecret: string; webhookSecret: string };
   email: { apiKey: string; from: string };
+  /** Gmail SMTP (address + Google app password). Used for all emails when set. */
+  gmail: { user: string; appPassword: string };
   sms: { provider: SmsProvider; apiKey: string; accountSid: string; senderId: string; templateId: string; orderUpdates: boolean };
   google: { clientId: string; clientSecret: string };
-  login: { methods: LoginMethod };
+  /** forgotPassword: show "Forgot password?" (only works when email sending is set up). */
+  login: { methods: LoginMethod; forgotPassword: boolean };
   storage: StorageSettings;
 };
 
 /** Field names that are encrypted at rest and write-only in the dashboard. */
-export const SECRET_FIELDS = ["razorpay.keySecret", "razorpay.webhookSecret", "email.apiKey", "sms.apiKey", "google.clientSecret", "storage.cloudSecret", "storage.s3Secret", "storage.blobToken"] as const;
+export const SECRET_FIELDS = ["razorpay.keySecret", "razorpay.webhookSecret", "email.apiKey", "gmail.appPassword", "sms.apiKey", "google.clientSecret", "storage.cloudSecret", "storage.s3Secret", "storage.blobToken"] as const;
 export type SecretField = (typeof SECRET_FIELDS)[number];
 
 type Stored = {
   razorpay?: { keyId?: string; keySecret?: string; webhookSecret?: string };
   email?: { apiKey?: string; from?: string };
+  gmail?: { user?: string; appPassword?: string };
   sms?: { provider?: SmsProvider; apiKey?: string; accountSid?: string; senderId?: string; templateId?: string; orderUpdates?: boolean };
   google?: { clientId?: string; clientSecret?: string };
-  login?: { methods?: LoginMethod };
+  login?: { methods?: LoginMethod; forgotPassword?: boolean };
   storage?: Partial<Record<keyof StorageSettings, string>>;
 };
 
@@ -94,7 +98,11 @@ export async function getIntegrations(): Promise<Integrations> {
       clientId: s.google?.clientId || e.AUTH_GOOGLE_ID || "",
       clientSecret: decryptSecret(s.google?.clientSecret) || e.AUTH_GOOGLE_SECRET || "",
     },
-    login: { methods: (LOGIN_METHODS as readonly string[]).includes(s.login?.methods ?? "") ? s.login!.methods! : "both" },
+    gmail: { user: s.gmail?.user ?? "", appPassword: decryptSecret(s.gmail?.appPassword).replace(/\s/g, "") },
+    login: {
+      methods: (LOGIN_METHODS as readonly string[]).includes(s.login?.methods ?? "") ? s.login!.methods! : "both",
+      forgotPassword: s.login?.forgotPassword ?? false,
+    },
     storage: {
       provider: (STORAGE_PROVIDERS as readonly string[]).includes(s.storage?.provider ?? "") ? (s.storage!.provider as StorageProvider) : "auto",
       cloudName: s.storage?.cloudName || e.CLOUDINARY_CLOUD_NAME || "",
@@ -139,6 +147,7 @@ export async function getIntegrationsForAdmin() {
       fromDefault: e.EMAIL_FROM,
       apiKey: secret(s.email?.apiKey, e.RESEND_API_KEY),
     },
+    gmail: { user: s.gmail?.user ?? "", appPassword: secret(s.gmail?.appPassword) },
     sms: {
       provider: s.sms?.provider ?? "none",
       accountSid: s.sms?.accountSid ?? "",
@@ -153,7 +162,7 @@ export async function getIntegrationsForAdmin() {
       clientSecret: secret(s.google?.clientSecret, e.AUTH_GOOGLE_SECRET),
       redirectUrl: `${e.NEXT_PUBLIC_APP_URL}/api/auth/callback/google`,
     },
-    login: { methods: (s.login?.methods ?? "both") as LoginMethod },
+    login: { methods: (s.login?.methods ?? "both") as LoginMethod, forgotPassword: s.login?.forgotPassword ?? false },
     storage: {
       provider: (s.storage?.provider ?? "auto") as StorageProvider,
       cloudName: s.storage?.cloudName ?? "",
@@ -175,9 +184,10 @@ export type IntegrationsAdminView = Awaited<ReturnType<typeof getIntegrationsFor
 export type IntegrationsSave = {
   razorpay: { keyId: string; keySecret?: string; webhookSecret?: string };
   email: { from: string; apiKey?: string };
+  gmail: { user: string; appPassword?: string };
   sms: { provider: SmsProvider; accountSid: string; senderId: string; templateId: string; orderUpdates: boolean; apiKey?: string };
   google: { clientId: string; clientSecret?: string };
-  login: { methods: LoginMethod };
+  login: { methods: LoginMethod; forgotPassword: boolean };
   storage: Omit<StorageSettings, "cloudSecret" | "s3Secret" | "blobToken"> & { cloudSecret?: string; s3Secret?: string; blobToken?: string };
   /** Secrets to remove. A secret left blank is kept as it is. */
   clear: SecretField[];
@@ -195,6 +205,8 @@ export async function saveIntegrations(input: IntegrationsSave) {
     "integrations.sms.orderUpdates": input.sms.orderUpdates,
     "integrations.google.clientId": input.google.clientId,
     "integrations.login.methods": input.login.methods,
+    "integrations.login.forgotPassword": input.login.forgotPassword,
+    "integrations.gmail.user": input.gmail.user,
     "integrations.storage.provider": input.storage.provider,
     "integrations.storage.cloudName": input.storage.cloudName,
     "integrations.storage.cloudKey": input.storage.cloudKey,
@@ -209,6 +221,7 @@ export async function saveIntegrations(input: IntegrationsSave) {
     "razorpay.keySecret": input.razorpay.keySecret,
     "razorpay.webhookSecret": input.razorpay.webhookSecret,
     "email.apiKey": input.email.apiKey,
+    "gmail.appPassword": input.gmail.appPassword,
     "sms.apiKey": input.sms.apiKey,
     "google.clientSecret": input.google.clientSecret,
     "storage.cloudSecret": input.storage.cloudSecret,
